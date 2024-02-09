@@ -1,0 +1,33 @@
+[build-system]
+requires = [
+    "hatchling"
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "pypomes_http"
+version = "0.0.1"
+authors = [
+  { name="GT Nunes", email="wisecoder01@gmail.com" }
+]
+description = "A collection of Python pomes, pennyeach (HTTP modules)"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "Flask>=3.0.2",
+    "pip>=24.0",
+    "pypomes_core>=0.6.3",
+    "pypomes_security>=0.0.8",
+    "requests>=2.31.0",
+    "setuptools>=68.0.0",
+    "wheel>=0.41.0"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/TheWiseCoder/PyPomes-HTTP"
+"Bug Tracker" = "https://github.com/TheWiseCoder/PyPomes-HTTP/issues"
