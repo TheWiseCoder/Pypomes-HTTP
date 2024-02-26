@@ -205,7 +205,7 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
     # initialize the return variable
     result: Response | None = None
 
-    # clone the headers object (accepts None)
+    # clone the headers object (it accepts None)
     op_headers: dict = copy.copy(headers)
 
     # initialize the error message
@@ -220,9 +220,12 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
 
         # satisfy authorization requirements, if appropriate
         match auth:
+            case None:
+                pass
             case "bearer":
                 # request authentiation token
                 token: str = access_get_token(errors=op_errors,
+                                              service_url=url,
                                               logger=logger,
                                               timeout=timeout)
                 if len(op_errors) == 0:
