@@ -218,14 +218,12 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
         # initialize the local errors list
         op_errors: list[str] = []
 
-        # satisfy authorization requirements, if appropriate
-        match auth:
-            case None:
-                pass
-            case "bearer":
+        # satisfy authorization requirements, if applicable
+        if auth:
+            if auth.startswith("bearer:"):
                 # request authentiation token
                 token: str = access_get_token(errors=op_errors,
-                                              service_url=url,
+                                              service_url=auth[7:],
                                               logger=logger,
                                               timeout=timeout)
                 if len(op_errors) == 0:
@@ -234,7 +232,7 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
                     op_headers["Authorization"] = f"Bearer {token}"
                 elif errors is not None:
                     errors.extend(op_errors)
-            case _:
+            else:
                 err_msg = f"Authentication scheme '{auth}' not implemented"
 
         # were there errors ?
