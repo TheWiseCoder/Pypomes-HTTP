@@ -6,7 +6,7 @@ from flask import Request
 from pypomes_core import APP_PREFIX, env_get_int, exc_format
 from pypomes_security import access_get_token
 from requests import Response
-from typing import Final, Literal
+from typing import Final
 from werkzeug.exceptions import BadRequest
 
 from .http_statuses import _HTTP_STATUSES
@@ -113,8 +113,7 @@ def http_json_from_request(request: Request) -> dict:
 
 
 def http_get(errors: list[str] | None, url: str, headers: dict = None, params: dict = None,
-             auth: Literal["basic", "bearer", "digest", "hoba", "mutual", "ntlm", "vapid", "scram"] = None,
-             timeout: int | None = HTTP_GET_TIMEOUT, logger: logging.Logger = None) -> Response:
+             auth: str = None, timeout: int | None = HTTP_GET_TIMEOUT, logger: logging.Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and retriever the returned response.
 
@@ -130,12 +129,11 @@ def http_get(errors: list[str] | None, url: str, headers: dict = None, params: d
     :param logger: optional logger
     :return: the response to the GET operation
     """
-    return __http_rest(errors, "GET", url, headers, params, None, None, auth, timeout, logger)
+    return _http_rest(errors, "GET", url, headers, params, None, None, auth, timeout, logger)
 
 
 def http_post(errors: list[str] | None, url: str, headers: dict = None,
-              params: dict = None, data: dict = None, json: dict = None,
-              auth: Literal["basic", "bearer", "digest", "hoba", "mutual", "ntlm", "vapid", "scram"] = None,
+              params: dict = None, data: dict = None, json: dict = None, auth: str = None,
               timeout: int | None = HTTP_POST_TIMEOUT, logger: logging.Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and retriever the returned response.
@@ -154,12 +152,11 @@ def http_post(errors: list[str] | None, url: str, headers: dict = None,
     :param logger: optional logger to log the operation with
     :return: the response to the POST operation
     """
-    return __http_rest(errors, "POST", url, headers, params, data, json, auth, timeout, logger)
+    return _http_rest(errors, "POST", url, headers, params, data, json, auth, timeout, logger)
 
 
 def http_put(errors: list[str] | None, url: str, headers: dict = None,
-             params: dict = None, data: dict = None, json: dict = None,
-             auth: Literal["basic", "bearer", "digest", "hoba", "mutual", "ntlm", "vapid", "scram"] = None,
+             params: dict = None, data: dict = None, json: dict = None, auth: str = None,
              timeout: int | None = HTTP_POST_TIMEOUT, logger: logging.Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and retriever the returned response.
@@ -178,12 +175,12 @@ def http_put(errors: list[str] | None, url: str, headers: dict = None,
     :param logger: optional logger to log the operation with
     :return: the response to the PUT operation
     """
-    return __http_rest(errors, "PUT", url, headers, params, data, json, auth, timeout, logger)
+    return _http_rest(errors, "PUT", url, headers, params, data, json, auth, timeout, logger)
 
 
-def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
-                params: dict, data: dict | None, json: dict | None,
-                auth: str | None, timeout: int, logger: logging.Logger) -> Response:
+def _http_rest(errors: list[str], method: str, url: str, headers: dict,
+               params: dict, data: dict | None, json: dict | None,
+               auth: str | None, timeout: int, logger: logging.Logger) -> Response:
     """
     Issue a *REST* request to the given *url*, and retriever the returned response.
 
@@ -191,7 +188,7 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
     The request might contain *headers* and *parameters*.
 
     :param errors: incidental error messages
-    :param rest_op: the REST operation (GET, POST or PUT)
+    :param method: the REST method to use (GET, POST or PUT)
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters
@@ -212,7 +209,7 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
     err_msg: str | None = None
 
     if logger:
-        logger.debug(f"{rest_op} '{url}'")
+        logger.debug(f"{method} '{url}'")
 
     try:
         # initialize the local errors list
@@ -238,7 +235,7 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
         # were there errors ?
         if not err_msg and not op_errors:
             # no, send the REST request
-            match rest_op:
+            match method:
                 case "GET":
                     result = requests.get(url=url,
                                           headers=op_headers,
@@ -259,20 +256,20 @@ def __http_rest(errors: list[str], rest_op: str, url: str, headers: dict,
                                           json=json,
                                           timeout=timeout)
             if logger:
-                logger.debug(f"{rest_op} '{url}': "
+                logger.debug(f"{method} '{url}': "
                              f"status {result.status_code} ({http_status_name(result.status_code)})")
 
             # was the request successful ?
             if result.status_code not in [200, 201, 202, 203]:
                 # no, report the problem
                 err_msg = (
-                    f"{rest_op} '{url}': failed, "
+                    f"{method} '{url}': failed, "
                     f"status {result.status_code}, reason '{result.reason}'"
                 )
     except Exception as e:
         # the operation raised an exception
         err_msg = (
-            f"{rest_op} '{url}': error, "
+            f"{method} '{url}': error, "
             f"'{exc_format(e, sys.exc_info())}'"
         )
 
