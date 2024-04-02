@@ -7,7 +7,6 @@ from pypomes_core import APP_PREFIX, env_get_int, exc_format
 from pypomes_security import access_get_token
 from requests import Response
 from typing import Final
-from werkzeug.exceptions import BadRequest
 
 from .http_statuses import _HTTP_STATUSES
 
@@ -72,23 +71,6 @@ def http_status_description(status_code: int, lang: str = "en") -> str:
     return (item or {"en": "Unknown status code", "pt": "Status desconhecido"}).get(lang)
 
 
-def http_json_from_form(request: Request) -> dict:
-    """
-    Build and return a *dict* containing the *key-value* pairs of the form parameters found in *request*.
-
-    :param request: the HTTP request
-    :return: dict containing the form parameters found
-    """
-    # initialize the return variable
-    result: dict = {}
-
-    # traverse the form parameters
-    for key, value in request.form.items():
-        result[key] = value
-
-    return result
-
-
 def http_json_from_request(request: Request) -> dict:
     """
     Obtain the *JSON* holding the *request*'s input parameters.
@@ -96,26 +78,28 @@ def http_json_from_request(request: Request) -> dict:
     :param request: the Request object
     :return: dict containing the input parameters (empty, if no input data exist)
     """
-    # initialize the return variable
-    result: dict = {}
+    # declare the return variable
+    result: dict
 
-    # retrieve the input JSON
-    try:
-        result: dict = request.get_json()
-    except BadRequest:
-        resp: str = request.get_data(as_text=True)
-        # does the request contain input data ?
-        if len(resp) > 0:
-            # yes, possibly mal-formed JSON
-            raise
+    # is JSON the content type of the request ?
+    if request.mimetype == MIMETYPE_JSON:
+        # yes, retrieve it
+        result = request.get_json()
+    else:
+        # no, try parameters in URL query
+        result = request.values  # noqa (bug: Ruff reports PD011)
+        if len(result) == 0:
+            # no query parameters, try the form
+            result = request.form  # empty dictionary, if no form or empty form
 
     return result
 
 
-def http_get(errors: list[str] | None, url: str, headers: dict = None, params: dict = None,
-             auth: str = None, timeout: int | None = HTTP_GET_TIMEOUT, logger: logging.Logger = None) -> Response:
+def http_delete(errors: list[str] | None, url: str, headers: dict = None,
+                params: dict = None, data: dict = None, json: dict = None, auth: str = None,
+                timeout: int | None = HTTP_DELETE_TIMEOUT, logger: logging.Logger = None) -> Response:
     """
-    Issue a *GET* request to the given *url*, and retriever the returned response.
+    Issue a *DELETE* request to the given *url*,and retrieve the returned response.
 
     The returned response might be *None*.
     The request might contain *headers* and *parameters*.
@@ -124,19 +108,44 @@ def http_get(errors: list[str] | None, url: str, headers: dict = None, params: d
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters
+    :param data: optionaL data to send in the body of the request
+    :param json: optional JSON to send in the body of the request
+    :param auth: optional authentication scheme to use
+    :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
+    :param logger: optional logger to log the operation with
+    :return: the response to the PUT operation
+    """
+    return _http_rest(errors, "DELETE", url, headers, params, data, json, auth, timeout, logger)
+
+
+def http_get(errors: list[str] | None, url: str, headers: dict = None,
+             params: dict = None, data: dict = None, json: dict = None, auth: str = None,
+             timeout: int | None = HTTP_GET_TIMEOUT, logger: logging.Logger = None) -> Response:
+    """
+    Issue a *GET* request to the given *url*,and retrieve the returned response.
+
+    The returned response might be *None*.
+    The request might contain *headers* and *parameters*.
+
+    :param errors: incidental error messages
+    :param url: the destination URL
+    :param headers: optional headers
+    :param params: optional parameters
+    :param data: optionaL data to send in the body of the request
+    :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
     :param logger: optional logger
     :return: the response to the GET operation
     """
-    return _http_rest(errors, "GET", url, headers, params, None, None, auth, timeout, logger)
+    return _http_rest(errors, "GET", url, headers, params, data, json, auth, timeout, logger)
 
 
 def http_post(errors: list[str] | None, url: str, headers: dict = None,
               params: dict = None, data: dict = None, json: dict = None, auth: str = None,
               timeout: int | None = HTTP_POST_TIMEOUT, logger: logging.Logger = None) -> Response:
     """
-    Issue a *POST* request to the given *url*, and retriever the returned response.
+    Issue a *POST* request to the given *url*,and retrieve the returned response.
 
     The returned response might be *None*.
     The request might contain *headers* and *parameters*.
@@ -159,7 +168,7 @@ def http_put(errors: list[str] | None, url: str, headers: dict = None,
              params: dict = None, data: dict = None, json: dict = None, auth: str = None,
              timeout: int | None = HTTP_POST_TIMEOUT, logger: logging.Logger = None) -> Response:
     """
-    Issue a *PUT* request to the given *url*, and retriever the returned response.
+    Issue a *PUT* request to the given *url*,and retrieve the returned response.
 
     The returned response might be *None*.
     The request might contain *headers* and *parameters*.
@@ -182,7 +191,7 @@ def _http_rest(errors: list[str], method: str, url: str, headers: dict,
                params: dict, data: dict | None, json: dict | None,
                auth: str | None, timeout: int, logger: logging.Logger) -> Response:
     """
-    Issue a *REST* request to the given *url*, and retriever the returned response.
+    Issue a *REST* request to the given *url*,and retrieve the returned response.
 
     The returned response might be *None*.
     The request might contain *headers* and *parameters*.
@@ -236,10 +245,19 @@ def _http_rest(errors: list[str], method: str, url: str, headers: dict,
         if not err_msg and not op_errors:
             # no, send the REST request
             match method:
+                case "DELETE":
+                    result = requests.delete(url=url,
+                                             headers=op_headers,
+                                             params=params,
+                                             data=data,
+                                             json=json,
+                                             timeout=timeout)
                 case "GET":
                     result = requests.get(url=url,
                                           headers=op_headers,
                                           params=params,
+                                          data=data,
+                                          json=json,
                                           timeout=timeout)
                 case "POST":
                     result = requests.post(url=url,
