@@ -17,11 +17,18 @@ class HttpAsync(threading.Thread):
     This invocation is done with *request* and the method specified in *job_method*.
     """
 
-    def __init__(self, job_name: str, job_url: str,
-                 job_method: Literal["GET", "POST", "PUT"],
-                 callback: callable = None, report_content: bool = False,
-                 headers: dict = None, params: dict = None, data: dict = None, json: dict = None,
-                 auth: str = None, timeout: int = None, logger: Logger = None) -> None:
+    def __init__(self, job_name:
+                 str, job_url: str,
+                 job_method: Literal["DELETE", "GET", "PATCH", "POST", "PUT"],
+                 callback: callable = None,
+                 report_content: bool = False,
+                 headers: dict = None,
+                 params: dict = None,
+                 data: dict = None,
+                 json: dict = None,
+                 auth: str = None,
+                 timeout: int = None,
+                 logger: Logger = None) -> None:
         """
         Initiate the asychronous invocation of the *REST* service.
 
@@ -110,7 +117,7 @@ class HttpAsync(threading.Thread):
             reply: dict = {
                 "job_name": self.job_name,
                 "start": self.start_timestamp,
-                "finish": self.finish_timestamp
+                "finish": self.finish_timestamp,
             }
 
             # any errors ?
