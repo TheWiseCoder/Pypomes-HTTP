@@ -6,11 +6,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pypomes_http"
-version = "0.1.8"
+version = "0.1.9"
 authors = [
   { name="GT Nunes", email="wisecoder01@gmail.com" }
 ]
-description = "A collection of Python pomes, pennyeach (HTTP modules)"
+description = "A collection of Python pomes, penyeach (HTTP modules)"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
     "Flask>=3.0.2",
     "pip>=24.0",
-    "pypomes_core>=1.0.6",
+    "pypomes_core>=1.1.6",
     "pypomes_security>=0.1.4",
     "requests>=2.31.0",
     "setuptools>=68.0.0",
