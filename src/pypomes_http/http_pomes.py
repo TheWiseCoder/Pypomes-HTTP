@@ -88,7 +88,7 @@ def http_get_parameter(request: Request,
 
     Until *param* is found, the following are sequentially attempted:
         - elements in a HTML form
-        - parameters in the URL's query section
+        - parameters in the URL's query string
         - key/value pairs in a *JSON* structure in the request's body
 
     :param request: the Request object
@@ -128,7 +128,7 @@ def http_get_parameters(request: Request) -> dict:
 
     The following are cumulatively attempted, in sequence:
         - key/value pairs in a *JSON* structure in the request's body
-        - parameters in the URL's query section
+        - parameters in the URL's query string
         - elements in a HTML form
 
     :param request: the Request object
@@ -152,10 +152,10 @@ def http_get_parameters(request: Request) -> dict:
 
 def http_delete(errors: list[str] | None,
                 url: str,
-                headers: dict = None,
-                params: dict = None,
-                data: dict = None,
-                json: dict = None,
+                headers: dict[str, str] = None,
+                params: dict[str, str]  = None,
+                data: dict[str, Any] = None,
+                json: dict[str, Any] = None,
                 auth: str = None,
                 timeout: float | None = HTTP_DELETE_TIMEOUT,
                 logger: Logger = None) -> Response:
@@ -165,7 +165,7 @@ def http_delete(errors: list[str] | None,
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
@@ -187,10 +187,10 @@ def http_delete(errors: list[str] | None,
 
 def http_get(errors: list[str] | None,
              url: str,
-             headers: dict = None,
-             params: dict = None,
-             data: dict = None,
-             json: dict = None,
+             headers: dict[str, str] = None,
+             params: dict[str, str]  = None,
+             data: dict[str, Any] = None,
+             json: dict[str, Any] = None,
              auth: str = None,
              timeout: float | None = HTTP_GET_TIMEOUT,
              logger: Logger = None) -> Response:
@@ -200,7 +200,7 @@ def http_get(errors: list[str] | None,
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
@@ -222,10 +222,10 @@ def http_get(errors: list[str] | None,
 
 def http_head(errors: list[str] | None,
               url: str,
-              headers: dict = None,
-              params: dict = None,
-              data: dict = None,
-              json: dict = None,
+              headers: dict[str, str] = None,
+              params: dict[str, str]  = None,
+              data: dict[str, Any] = None,
+              json: dict[str, Any] = None,
               auth: str = None,
               timeout: float | None = HTTP_HEAD_TIMEOUT,
               logger: Logger = None) -> Response:
@@ -235,7 +235,7 @@ def http_head(errors: list[str] | None,
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
@@ -257,10 +257,10 @@ def http_head(errors: list[str] | None,
 
 def http_patch(errors: list[str] | None,
                url: str,
-               headers: dict = None,
-               params: dict = None,
-               data: dict = None,
-               json: dict = None,
+               headers: dict[str, str] = None,
+               params: dict[str, str]  = None,
+               data: dict[str, Any] = None,
+               json: dict[str, Any] = None,
                auth: str = None,
                timeout: float | None = HTTP_PATCH_TIMEOUT,
                logger: Logger = None) -> Response:
@@ -270,7 +270,7 @@ def http_patch(errors: list[str] | None,
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
@@ -292,11 +292,14 @@ def http_patch(errors: list[str] | None,
 
 def http_post(errors: list[str] | None,
               url: str,
-              headers: dict = None,
-              params: dict = None,
-              data: dict = None,
-              json: dict = None,
-              files: dict[str, BinaryIO] | list[tuple[str, BinaryIO, str]] = None,
+              headers: dict[str, str] = None,
+              params: dict[str, str]  = None,
+              data: dict[str, Any] = None,
+              json: dict[str, Any] = None,
+              files: dict[str, BinaryIO] |
+                     list[tuple[str, BinaryIO]] |
+                     list[tuple[str, BinaryIO, str]] |
+                     list[tuple[str, BinaryIO, str, dict[str, Any]]] = None,
               auth: str = None,
               timeout: float | None = HTTP_POST_TIMEOUT,
               logger: Logger = None) -> Response:
@@ -304,20 +307,23 @@ def http_post(errors: list[str] | None,
     Issue a *POST* request to the given *url*, and return the response received.
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as:
-      - a *dict* holding *name: content* pairs, or
-      - a *list* of *tuples* holding *name, content, mimetype* triplets
+      - a *dict* holding *file-name: file-content* pairs, or
+      - a *list* of 2-*tuple* holding *file-name, file-content* pairs
+      - a *list* of 3-*tuple* holding *file-name, file-content, content-type* triplets
+      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruples
     These parameter elements are:
-      - *name*: the file name
-      _ *content*: a pointer obtained from *Path.open()*  or *BytesIO*
-      - *mimetype*: the MIME type of the file
+      - *file-name*: the file name
+      _ *file-content*: a pointer obtained from *Path.open()*  or *BytesIO*
+      - *content-type*: the mimetype of the file
+      - *custom-headers*: a *dict* containing additional headers to add for the file
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
-    :param files: one or more files to send
+    :param files: optionally, one or more files to send
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
@@ -338,10 +344,10 @@ def http_post(errors: list[str] | None,
 
 def http_put(errors: list[str] | None,
              url: str,
-             headers: dict = None,
-             params: dict = None,
-             data: dict = None,
-             json: dict = None,
+             headers: dict[str, str] = None,
+             params: dict[str, str]  = None,
+             data: dict[str, Any] = None,
+             json: dict[str, Any] = None,
              auth: str = None,
              timeout: float | None = HTTP_PUT_TIMEOUT,
              logger: Logger = None) -> Response:
@@ -351,7 +357,7 @@ def http_put(errors: list[str] | None,
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
@@ -374,11 +380,14 @@ def http_put(errors: list[str] | None,
 def http_rest(errors: list[str],
               method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
               url: str,
-              headers: dict = None,
-              params: dict = None,
-              data: dict = None,
-              json: dict = None,
-              files: dict[str, BinaryIO] | list[tuple[str, BinaryIO, str]] = None,
+              headers: dict[str, str] = None,
+              params: dict[str, str]  = None,
+              data: dict[str, Any] = None,
+              json: dict[str, Any] = None,
+              files: dict[str, BinaryIO] |
+                     list[tuple[str, BinaryIO]] |
+                     list[tuple[str, BinaryIO, str]] |
+                     list[tuple[str, BinaryIO, str, dict[str, Any]]] = None,
               auth: str = None,
               timeout: float = None,
               logger: Logger = None) -> Response:
@@ -386,22 +395,25 @@ def http_rest(errors: list[str],
     Issue a *REST* request to the given *url*, and return the response received.
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as:
-      - a *dict* holding *name: content* pairs, or
-      - a *list* of *tuples* holding *name, content, mimetype* triplets
+      - a *dict* holding *file-name: file-content* pairs, or
+      - a *list* of 2-*tuple* holding *file-name, file-content* pairs
+      - a *list* of 3-*tuple* holding *file-name, file-content, content-type* triplets
+      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruples
     These parameter elements are:
-      - *name*: the file name
-      _ *content*: a pointer obtained from *Path.open()*  or *BytesIO*
-      - *mimetype*: the MIME type of the file
+      - *file-name*: the file name
+      _ *file-content*: a pointer obtained from *Path.open()*  or *BytesIO*
+      - *content-type*: the mimetype of the file
+      - *custom-headers*: a *dict* containing additional headers to add for the file
      The *files* parameter is considered if *method* is *POST*, and disregarded otherwise.
 
     :param errors: incidental error messages
     :param method: the REST method to use (DELETE, GET, HEAD, PATCH, POST or PUT)
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional query parameters
+    :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
-    :param files: one or more files to send
+    :param files: optionally, one or more files to send
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use 'None' to omit)
     :param logger: optional logger to log the operation with
@@ -443,50 +455,14 @@ def http_rest(errors: list[str],
         # errors ?
         if not err_msg and not op_errors:
             # no, send the REST request
-            match method:
-                case "DELETE":
-                    result = requests.delete(url=url,
-                                             headers=op_headers,
-                                             params=params,
-                                             data=data,
-                                             json=json,
-                                             timeout=timeout)
-                case "GET":
-                    result = requests.get(url=url,
-                                          headers=op_headers,
-                                          params=params,
-                                          data=data,
-                                          json=json,
-                                          timeout=timeout)
-                case "HEAD":
-                    result = requests.head(url=url,
-                                           headers=op_headers,
-                                           params=params,
-                                           data=data,
-                                           json=json,
-                                           timeout=timeout)
-                case "PATCH":
-                    result = requests.patch(url=url,
-                                            headers=op_headers,
-                                            params=params,
-                                            data=data,
-                                            json=json,
-                                            timeout=timeout)
-                case "POST":
-                    result = requests.post(url=url,
-                                           headers=op_headers,
-                                           params=params,
-                                           data=data,
-                                           json=json,
-                                           files=files,
-                                           timeout=timeout)
-                case "PUT":
-                    result = requests.put(url=url,
-                                          headers=op_headers,
-                                          params=params,
-                                          data=data,
-                                          json=json,
-                                          timeout=timeout)
+            result = requests.request(method=method,
+                                      url=url,
+                                      headers=op_headers,
+                                      params=params,
+                                      data=data,
+                                      json=json,
+                                      files=files if method == "POST" else None,
+                                      timeout=timeout)
             if logger:
                 logger.debug(msg=(f"{method} '{url}': "
                                   f"status {result.status_code} ({http_status_name(result.status_code)})"))
