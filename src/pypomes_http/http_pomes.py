@@ -311,7 +311,7 @@ def http_post(errors: list[str] | None,
       - a *dict* holding *file-name: file-content* pairs, or
       - a *list* of 2-*tuple* holding *file-name, file-content* pairs
       - a *list* of 3-*tuple* holding *file-name, file-content, content-type* triplets
-      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruples
+      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruplets
     These parameter elements are:
       - *file-name*: the file name
       _ *file-content*: file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
@@ -399,7 +399,7 @@ def http_rest(errors: list[str],
       - a *dict* holding *file-name: file-content* pairs, or
       - a *list* of 2-*tuple* holding *file-name, file-content* pairs
       - a *list* of 3-*tuple* holding *file-name, file-content, content-type* triplets
-      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruples
+      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruplets
     These parameter elements are:
       - *file-name*: the file name
       _ *file-content*: the file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
