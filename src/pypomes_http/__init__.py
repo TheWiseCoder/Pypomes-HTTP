@@ -8,7 +8,7 @@ from .http_pomes import (
     MIMETYPE_JSON, MIMETYPE_MULTIPART, MIMETYPE_PDF, MIMETYPE_PKCS7, MIMETYPE_SOAP,
     MIMETYPE_TEXT, MIMETYPE_URLENCODED, MIMETYPE_XML, MIMETYPE_ZIP,
     http_status_code, http_status_name, http_status_description,
-    http_get_parameter, http_get_parameters,
+    http_get_parameter, http_get_parameters, http_rest,
     http_delete, http_get,  http_head, http_patch, http_post, http_put,
 )
 
@@ -22,7 +22,7 @@ __all__ = [
     "MIMETYPE_JSON", "MIMETYPE_MULTIPART", "MIMETYPE_PDF", "MIMETYPE_PKCS7", "MIMETYPE_SOAP",
     "MIMETYPE_TEXT", "MIMETYPE_URLENCODED", "MIMETYPE_XML", "MIMETYPE_ZIP",
     "http_status_code", "http_status_name", "http_status_description",
-    "http_get_parameter", "http_get_parameters",
+    "http_get_parameter", "http_get_parameters", "http_rest",
     "http_delete", "http_get", "http_head", "http_patch", "http_post", "http_put",
 ]
 

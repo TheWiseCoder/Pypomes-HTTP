@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pypomes_http"
-version = "0.1.9"
+version = "0.2.4"
 authors = [
   { name="GT Nunes", email="wisecoder01@gmail.com" }
 ]
@@ -21,9 +21,9 @@ classifiers = [
 dependencies = [
     "Flask>=3.0.2",
     "pip>=24.0",
-    "pypomes_core>=1.1.6",
-    "pypomes_security>=0.1.4",
-    "requests>=2.31.0",
+    "pypomes_core>=1.4.0",
+    "pypomes_security>=0.2.2",
+    "requests>=2.32.3",
     "setuptools>=68.0.0",
     "wheel>=0.42.0"
 ]

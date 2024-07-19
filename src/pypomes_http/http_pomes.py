@@ -1,22 +1,28 @@
 import contextlib
 import copy
-import logging
 import requests
 import sys
 from flask import Request
-from pypomes_core import APP_PREFIX, env_get_int, exc_format
+from logging import Logger
+from pypomes_core import APP_PREFIX, env_get_float, exc_format
 from pypomes_security import access_get_token
 from requests import Response
-from typing import Any, Final
+from typing import Any, Final, Literal, BinaryIO
 
 from .http_statuses import _HTTP_STATUSES
 
-HTTP_DELETE_TIMEOUT: Final[int] = env_get_int(f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT", 300)
-HTTP_GET_TIMEOUT: Final[int] = env_get_int(f"{APP_PREFIX}_HTTP_GET_TIMEOUT", 300)
-HTTP_HEAD_TIMEOUT: Final[int] = env_get_int(f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT", 300)
-HTTP_PATCH_TIMEOUT: Final[int] = env_get_int(f"{APP_PREFIX}_HTTP_POST_TIMEOUT", 300)
-HTTP_POST_TIMEOUT: Final[int] = env_get_int(f"{APP_PREFIX}_HTTP_POST_TIMEOUT", 300)
-HTTP_PUT_TIMEOUT: Final[int] = env_get_int(f"{APP_PREFIX}_HTTP_PUT_TIMEOUT", 300)
+HTTP_DELETE_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
+                                                  def_value=300.)
+HTTP_GET_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_GET_TIMEOUT",
+                                               def_value=300.)
+HTTP_HEAD_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT",
+                                                def_value=300.)
+HTTP_PATCH_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
+                                                 def_value=300.)
+HTTP_POST_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
+                                                def_value=300.)
+HTTP_PUT_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_PUT_TIMEOUT",
+                                               def_value=300.)
 
 MIMETYPE_BINARY: Final[str] = "application/octet-stream"
 MIMETYPE_CSS: Final[str] = "text/css"
@@ -63,7 +69,7 @@ def http_status_name(status_code: int) -> str:
 
 
 def http_status_description(status_code: int,
-                            lang: str = "en") -> str:
+                            lang: Literal["en", "pt"] = "en") -> str:
     """
     Return the description of the HTTP status *status_code*.
 
@@ -82,7 +88,7 @@ def http_get_parameter(request: Request,
 
     Until *param* is found, the following are sequentially attempted:
         - elements in a HTML form
-        - parameters in the URL's query part
+        - parameters in the URL's query section
         - key/value pairs in a *JSON* structure in the request's body
 
     :param request: the Request object
@@ -122,7 +128,7 @@ def http_get_parameters(request: Request) -> dict:
 
     The following are cumulatively attempted, in sequence:
         - key/value pairs in a *JSON* structure in the request's body
-        - parameters in the URL's query part
+        - parameters in the URL's query section
         - elements in a HTML form
 
     :param request: the Request object
@@ -149,27 +155,34 @@ def http_delete(errors: list[str] | None,
                 headers: dict = None,
                 params: dict = None,
                 data: dict = None,
-                json: dict = None, auth: str = None,
-                timeout: int | None = HTTP_DELETE_TIMEOUT,
-                logger: logging.Logger = None) -> Response:
+                json: dict = None,
+                auth: str = None,
+                timeout: float | None = HTTP_DELETE_TIMEOUT,
+                logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
-
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the DELETE operation
+    :return: the response to the DELETE operation, or 'None' if an error ocurred
     """
-    return _http_rest(errors, "DELETE", url, headers, params, data, json, auth, timeout, logger)
+    return http_rest(errors=errors,
+                     method="DELETE",
+                     url=url,
+                     headers=headers,
+                     params=params,
+                     data=data,
+                     json=json,
+                     auth=auth,
+                     timeout=timeout,
+                     logger=logger)
 
 
 def http_get(errors: list[str] | None,
@@ -177,28 +190,34 @@ def http_get(errors: list[str] | None,
              headers: dict = None,
              params: dict = None,
              data: dict = None,
-             json: dict = None, auth: str = None,
-             timeout: int | None = HTTP_GET_TIMEOUT,
-             logger: logging.Logger = None) -> Response:
+             json: dict = None,
+             auth: str = None,
+             timeout: float | None = HTTP_GET_TIMEOUT,
+             logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
-
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
     :param logger: optional logger
-    :return: the response to the GET operation
+    :return: the response to the GET operation, or 'None' if an error ocurred
     """
-    return _http_rest(errors, "GET", url, headers,
-                      params, data, json, auth, timeout, logger)
+    return http_rest(errors=errors,
+                     method="GET",
+                     url=url,
+                     headers=headers,
+                     params=params,
+                     data=data,
+                     json=json,
+                     auth=auth,
+                     timeout=timeout,
+                     logger=logger)
 
 
 def http_head(errors: list[str] | None,
@@ -206,28 +225,34 @@ def http_head(errors: list[str] | None,
               headers: dict = None,
               params: dict = None,
               data: dict = None,
-              json: dict = None, auth: str = None,
-              timeout: int | None = HTTP_HEAD_TIMEOUT,
-              logger: logging.Logger = None) -> Response:
+              json: dict = None,
+              auth: str = None,
+              timeout: float | None = HTTP_HEAD_TIMEOUT,
+              logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
-
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
+    :param timeout: timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
     :param logger: optional logger
-    :return: the response to the GET operation
+    :return: the response to the HEAD operation, or 'None' if an error ocurred
     """
-    return _http_rest(errors, "HEAD", url, headers,
-                      params, data, json, auth, timeout, logger)
+    return http_rest(errors=errors,
+                     method="HEAD",
+                     url=url,
+                     headers=headers,
+                     params=params,
+                     data=data,
+                     json=json,
+                     auth=auth,
+                     timeout=timeout,
+                     logger=logger)
 
 
 def http_patch(errors: list[str] | None,
@@ -235,28 +260,34 @@ def http_patch(errors: list[str] | None,
                headers: dict = None,
                params: dict = None,
                data: dict = None,
-               json: dict = None, auth: str = None,
-               timeout: int | None = HTTP_PATCH_TIMEOUT,
-               logger: logging.Logger = None) -> Response:
+               json: dict = None,
+               auth: str = None,
+               timeout: float | None = HTTP_PATCH_TIMEOUT,
+               logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
-
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the PATCH operation
+    :return: the response to the PATCH operation, or 'None' if an error ocurred
     """
-    return _http_rest(errors, "POST", url, headers,
-                      params, data, json, auth, timeout, logger)
+    return http_rest(errors=errors,
+                     method="PATCH",
+                     url=url,
+                     headers=headers,
+                     params=params,
+                     data=data,
+                     json=json,
+                     auth=auth,
+                     timeout=timeout,
+                     logger=logger)
 
 
 def http_post(errors: list[str] | None,
@@ -265,28 +296,44 @@ def http_post(errors: list[str] | None,
               params: dict = None,
               data: dict = None,
               json: dict = None,
+              files: dict[str, BinaryIO] | list[tuple[str, BinaryIO, str]] = None,
               auth: str = None,
-              timeout: int | None = HTTP_POST_TIMEOUT,
-              logger: logging.Logger = None) -> Response:
+              timeout: float | None = HTTP_POST_TIMEOUT,
+              logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
 
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
+    To send multipart-encoded files, the optional *files* parameter is used, formatted as:
+      - a *dict* holding *name: content* pairs, or
+      - a *list* of *tuples* holding *name, content, mimetype* triplets
+    These parameter elements are:
+      - *name*: the file name
+      _ *content*: a pointer obtained from *Path.open()*  or *BytesIO*
+      - *mimetype*: the MIME type of the file
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
+    :param files: one or more files to send
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the POST operation
+    :return: the response to the POST operation, or 'None' if an error ocurred
     """
-    return _http_rest(errors, "POST", url, headers,
-                      params, data, json, auth, timeout, logger)
+    return http_rest(errors=errors,
+                     method="POST",
+                     url=url,
+                     headers=headers,
+                     params=params,
+                     data=data,
+                     json=json,
+                     files=files,
+                     auth=auth,
+                     timeout=timeout,
+                     logger=logger)
 
 
 def http_put(errors: list[str] | None,
@@ -296,56 +343,69 @@ def http_put(errors: list[str] | None,
              data: dict = None,
              json: dict = None,
              auth: str = None,
-             timeout: int | None = HTTP_PUT_TIMEOUT,
-             logger: logging.Logger = None) -> Response:
+             timeout: float | None = HTTP_PUT_TIMEOUT,
+             logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
-
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
 
     :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
     :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the PUT operation
+    :return: the response to the PUT operation, or 'None' if an error ocurred
     """
-    return _http_rest(errors, "PUT", url, headers,
-                      params, data, json, auth, timeout, logger)
+    return http_rest(errors=errors,
+                     method="PUT",
+                     url=url,
+                     headers=headers,
+                     params=params,
+                     data=data,
+                     json=json,
+                     auth=auth,
+                     timeout=timeout,
+                     logger=logger)
 
 
-def _http_rest(errors: list[str],
-               method: str,
-               url: str,
-               headers: dict,
-               params: dict,
-               data: dict | None,
-               json: dict | None,
-               auth: str | None,
-               timeout: int,
-               logger: logging.Logger) -> Response:
+def http_rest(errors: list[str],
+              method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
+              url: str,
+              headers: dict = None,
+              params: dict = None,
+              data: dict = None,
+              json: dict = None,
+              files: dict[str, BinaryIO] | list[tuple[str, BinaryIO, str]] = None,
+              auth: str = None,
+              timeout: float = None,
+              logger: Logger = None) -> Response:
     """
     Issue a *REST* request to the given *url*, and return the response received.
 
-    The returned response might be *None*.
-    The request might contain *headers* and *parameters*.
+    To send multipart-encoded files, the optional *files* parameter is used, formatted as:
+      - a *dict* holding *name: content* pairs, or
+      - a *list* of *tuples* holding *name, content, mimetype* triplets
+    These parameter elements are:
+      - *name*: the file name
+      _ *content*: a pointer obtained from *Path.open()*  or *BytesIO*
+      - *mimetype*: the MIME type of the file
+     The *files* parameter is considered if *method* is *POST*, and disregarded otherwise.
 
     :param errors: incidental error messages
     :param method: the REST method to use (DELETE, GET, HEAD, PATCH, POST or PUT)
     :param url: the destination URL
     :param headers: optional headers
-    :param params: optional parameters
+    :param params: optional query parameters
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
+    :param files: one or more files to send
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
+    :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use 'None' to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the REST operation
+    :return: the response to the REST operation, or 'None' if an error ocurred
     """
     # initialize the return variable
     result: Response | None = None
@@ -357,7 +417,7 @@ def _http_rest(errors: list[str],
     err_msg: str | None = None
 
     if logger:
-        logger.debug(f"{method} '{url}'")
+        logger.debug(msg=f"{method} '{url}'")
 
     try:
         # initialize the local errors list
@@ -369,18 +429,18 @@ def _http_rest(errors: list[str],
                 # request authentiation token
                 token: str = access_get_token(errors=op_errors,
                                               service_url=auth[7:],
-                                              logger=logger,
-                                              timeout=timeout)
-                if len(op_errors) == 0:
+                                              timeout=timeout,
+                                              logger=logger)
+                if not op_errors:
                     if not op_headers:
                         op_headers = {}
                     op_headers["Authorization"] = f"Bearer {token}"
-                elif errors is not None:
+                elif isinstance(errors, list):
                     errors.extend(op_errors)
             else:
                 err_msg = f"Authentication scheme '{auth}' not implemented"
 
-        # were there errors ?
+        # errors ?
         if not err_msg and not op_errors:
             # no, send the REST request
             match method:
@@ -418,6 +478,7 @@ def _http_rest(errors: list[str],
                                            params=params,
                                            data=data,
                                            json=json,
+                                           files=files,
                                            timeout=timeout)
                 case "PUT":
                     result = requests.put(url=url,
@@ -427,11 +488,11 @@ def _http_rest(errors: list[str],
                                           json=json,
                                           timeout=timeout)
             if logger:
-                logger.debug(f"{method} '{url}': "
-                             f"status {result.status_code} ({http_status_name(result.status_code)})")
+                logger.debug(msg=(f"{method} '{url}': "
+                                  f"status {result.status_code} ({http_status_name(result.status_code)})"))
 
             # was the request successful ?
-            if result.status_code not in [200, 201, 202, 203]:
+            if not result or result.status_code < 200 or result.status_code >= 300:
                 # no, report the problem
                 err_msg = (
                     f"{method} '{url}': failed, "
@@ -439,17 +500,16 @@ def _http_rest(errors: list[str],
                 )
     except Exception as e:
         # the operation raised an exception
-        err_msg = (
-            f"{method} '{url}': error, "
-            f"'{exc_format(e, sys.exc_info())}'"
-        )
+        exc_err: str = exc_format(exc=e,
+                                  exc_info=sys.exc_info())
+        err_msg = f"{method} '{url}': error, '{exc_err}'"
 
     # is there an error message ?
     if err_msg:
         # yes, log and/or save it
         if logger:
-            logger.error(err_msg)
-        if errors is not None:
+            logger.error(msg=err_msg)
+        if isinstance(errors, list):
             errors.append(err_msg)
 
     return result

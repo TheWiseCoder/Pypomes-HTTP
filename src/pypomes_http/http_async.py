@@ -7,7 +7,7 @@ from pypomes_core import TIMEZONE_LOCAL
 from typing import Literal
 from requests import Response
 
-from .http_pomes import _http_rest
+from .http_pomes import http_rest
 
 
 class HttpAsync(threading.Thread):
@@ -17,9 +17,10 @@ class HttpAsync(threading.Thread):
     This invocation is done with Python's *request* and the method specified in *job_method*.
     """
 
-    def __init__(self, job_name:
-                 str, job_url: str,
-                 job_method: Literal["DELETE", "GET", "PATCH", "POST", "PUT"],
+    def __init__(self,
+                 job_name: str,
+                 job_url: str,
+                 job_method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
                  callback: callable = None,
                  report_content: bool = False,
                  headers: dict = None,
@@ -27,7 +28,7 @@ class HttpAsync(threading.Thread):
                  data: dict = None,
                  json: dict = None,
                  auth: str = None,
-                 timeout: int = None,
+                 timeout: float = None,
                  logger: Logger = None) -> None:
         """
         Initiate the asychronous invocation of the *REST* service.
@@ -37,19 +38,15 @@ class HttpAsync(threading.Thread):
 
         {
             "job-name": "<str>"            -- the name given for the job
-
             "start": "<iso-date>",         -- timestamp of invocation start (ISO format)
-
             "finish": "<iso-date>",        -- timestamp of invocation finish (ISO format)
-
             "errors": "<errors-reported>"  -- errors returned by the service, if applicable
-
             "content": "<bytes-in-BASE64>" -- Base64-wrapped contents of the response
         }
 
         :param job_name: the name of the job being invoked
         :param job_url: the job's URL
-        :param job_method: the REST method to use (DELETE, GET, PATCH, POST, PUT)
+        :param job_method: the HTTP method to use (DELETE, GET, HEAD, PATCH, POST, PUT)
         :param callback: the function to call on job termination
         :param report_content: whether to report the response's content to callback
         :param headers: optional headers
@@ -78,7 +75,7 @@ class HttpAsync(threading.Thread):
         self.finish_timestamp: str | None = None
 
         if self.logger:
-            self.logger.debug(f"Job '{job_name}' instantiated, with URL '{job_url}'")
+            self.logger.debug(msg=f"Job '{job_name}' instantiated, with URL '{job_url}'")
 
     def run(self) -> None:
         """
@@ -88,28 +85,28 @@ class HttpAsync(threading.Thread):
         errors: list[str] = []
 
         if self.logger:
-            self.logger.info(f"Job '{self.job_name}' started")
+            self.logger.info(msg=f"Job '{self.job_name}' started")
 
         # obtain the start timestamp
-        self.start_timestamp = datetime.now(TIMEZONE_LOCAL).isoformat()
+        self.start_timestamp = datetime.now(tz=TIMEZONE_LOCAL).isoformat()
 
         # invoke the service
-        response: Response = _http_rest(errors=errors,
-                                        method=self.job_method,
-                                        url=self.job_url,
-                                        headers=self.headers,
-                                        params=self.params,
-                                        data=self.data,
-                                        json=self.json,
-                                        auth=self.auth,
-                                        timeout=self.timeout,
-                                        logger=self.logger)
+        response: Response = http_rest(errors=errors,
+                                       method=self.job_method,
+                                       url=self.job_url,
+                                       headers=self.headers,
+                                       params=self.params,
+                                       data=self.data,
+                                       json=self.json,
+                                       auth=self.auth,
+                                       timeout=self.timeout,
+                                       logger=self.logger)
 
         # obtain the finish timestamp
-        self.finish_timestamp = datetime.now(TIMEZONE_LOCAL).isoformat()
+        self.finish_timestamp = datetime.now(tz=TIMEZONE_LOCAL).isoformat()
 
         if self.logger:
-            self.logger.info(f"Job '{self.job_name}' finished")
+            self.logger.info(msg=f"Job '{self.job_name}' finished")
 
         # has a callback been specified ?
         if self.callback:
@@ -119,19 +116,16 @@ class HttpAsync(threading.Thread):
                 "start": self.start_timestamp,
                 "finish": self.finish_timestamp,
             }
-
-            # any errors ?
+            # errors ?
             if errors:
                 # yes, report the errors messages
-                reply["errors"] = json.dumps(errors, ensure_ascii=False)
-
+                reply["errors"] = json.dumps(obj=errors,
+                                             ensure_ascii=False)
             # return the response's content, if appropriate
             if (self.report_content
                 and response and
                 hasattr(response, "content") and
                 isinstance(response.content, bytes)):
                 reply["content"] = base64.b64encode(response.content).decode()
-
-            # send message to recipient, if applicable
-            if self.callback:
-                self.callback(reply)
+            # send message to recipient
+            self.callback(reply)
