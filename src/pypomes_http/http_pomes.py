@@ -4,6 +4,7 @@ import requests
 import sys
 from flask import Request
 from logging import Logger
+from io import BytesIO
 from pypomes_core import APP_PREFIX, env_get_float, exc_format
 from pypomes_security import access_get_token
 from requests import Response
@@ -122,7 +123,7 @@ def http_get_parameter(request: Request,
     return result
 
 
-def http_get_parameters(request: Request) -> dict:
+def http_get_parameters(request: Request) -> dict[str, Any]:
     """
     Obtain the *request*'s input parameters.
 
@@ -135,7 +136,7 @@ def http_get_parameters(request: Request) -> dict:
     :return: dict containing the input parameters (empty, if no input data exists)
     """
     # initialize the return variable
-    result: dict = {}
+    result: dict[str, Any] = {}
 
     # attempt to retrieve the JSON data in body
     with contextlib.suppress(Exception):
@@ -296,10 +297,10 @@ def http_post(errors: list[str] | None,
               params: dict[str, str]  = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
-              files: dict[str, BinaryIO] |
-                     list[tuple[str, BinaryIO]] |
-                     list[tuple[str, BinaryIO, str]] |
-                     list[tuple[str, BinaryIO, str, dict[str, Any]]] = None,
+              files: dict[str, bytes | BinaryIO] |
+                     list[tuple[str, bytes | BinaryIO]] |
+                     list[tuple[str, bytes | BinaryIO, str]] |
+                     list[tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
               auth: str = None,
               timeout: float | None = HTTP_POST_TIMEOUT,
               logger: Logger = None) -> Response:
@@ -313,7 +314,7 @@ def http_post(errors: list[str] | None,
       - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruples
     These parameter elements are:
       - *file-name*: the file name
-      _ *file-content*: a pointer obtained from *Path.open()*  or *BytesIO*
+      _ *file-content*: file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
       - *content-type*: the mimetype of the file
       - *custom-headers*: a *dict* containing additional headers to add for the file
 
@@ -384,10 +385,10 @@ def http_rest(errors: list[str],
               params: dict[str, str]  = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
-              files: dict[str, BinaryIO] |
-                     list[tuple[str, BinaryIO]] |
-                     list[tuple[str, BinaryIO, str]] |
-                     list[tuple[str, BinaryIO, str, dict[str, Any]]] = None,
+              files: dict[str, bytes | BinaryIO] |
+                     list[tuple[str, bytes | BinaryIO]] |
+                     list[tuple[str, bytes | BinaryIO, str]] |
+                     list[tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
               auth: str = None,
               timeout: float = None,
               logger: Logger = None) -> Response:
@@ -401,7 +402,7 @@ def http_rest(errors: list[str],
       - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruples
     These parameter elements are:
       - *file-name*: the file name
-      _ *file-content*: a pointer obtained from *Path.open()*  or *BytesIO*
+      _ *file-content*: the file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
       - *content-type*: the mimetype of the file
       - *custom-headers*: a *dict* containing additional headers to add for the file
      The *files* parameter is considered if *method* is *POST*, and disregarded otherwise.
@@ -444,36 +445,68 @@ def http_rest(errors: list[str],
                                               timeout=timeout,
                                               logger=logger)
                 if not op_errors:
-                    if not op_headers:
-                        op_headers = {}
+                    op_headers = op_headers or {}
                     op_headers["Authorization"] = f"Bearer {token}"
                 elif isinstance(errors, list):
                     errors.extend(op_errors)
             else:
                 err_msg = f"Authentication scheme '{auth}' not implemented"
 
-        # errors ?
+        # proceed if no errors
         if not err_msg and not op_errors:
-            # no, send the REST request
+
+            # adjust the 'files' parameter, converting 'bytes' to a file pointer
+            x_files: Any
+            if method != "POST":
+                x_files = None
+            elif isinstance(files, dict):
+                # 'files' is type 'dict[str, bytes | BinaryIO]'
+                x_files = {}
+                for key, value in files.items():
+                    if isinstance(value, bytes):
+                        x_files[key] = BytesIO(value)
+                        x_files[key].seek(0)
+                    else:
+                        x_files[key] = value
+            elif isinstance(files, list):
+                # 'files' is type
+                #   'list[tuple[str, bytes | BinaryIO]]' or
+                #   'list[tuple[str, bytes | BinaryIO, str]]' or
+                #   'list[tuple[str, bytes | BinaryIO, str, dict[str, Any]]]'
+                x_files = []
+                for t_file in files:
+                    if isinstance(t_file[1], bytes):
+                        x_file: list = list(t_file)
+                        x_file[1] = BytesIO(t_file[1])
+                        x_file[1].seek(0)
+                        x_files.append(tuple(x_file))
+                    else:
+                        x_files.append(t_file)
+            else:
+                x_files = files
+
+            # send the request
             result = requests.request(method=method,
                                       url=url,
                                       headers=op_headers,
                                       params=params,
                                       data=data,
                                       json=json,
-                                      files=files if method == "POST" else None,
+                                      files=x_files,
                                       timeout=timeout)
+            # log the result
             if logger:
                 logger.debug(msg=(f"{method} '{url}': "
-                                  f"status {result.status_code} ({http_status_name(result.status_code)})"))
+                                  f"status {result.status_code} "
+                                  f"({http_status_name(result.status_code)})"))
 
             # was the request successful ?
-            if not result or result.status_code < 200 or result.status_code >= 300:
+            if not result or \
+               result.status_code < 200 or \
+               result.status_code >= 300:
                 # no, report the problem
-                err_msg = (
-                    f"{method} '{url}': failed, "
-                    f"status {result.status_code}, reason '{result.reason}'"
-                )
+                err_msg = (f"{method} '{url}': failed, "
+                           f"status {result.status_code}, reason '{result.reason}'")
     except Exception as e:
         # the operation raised an exception
         exc_err: str = exc_format(exc=e,
