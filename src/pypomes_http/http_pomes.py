@@ -1,5 +1,4 @@
 import contextlib
-import copy
 import requests
 import sys
 from flask import Request
@@ -298,20 +297,21 @@ def http_post(errors: list[str] | None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               files: dict[str, bytes | BinaryIO] |
-                     list[tuple[str, bytes | BinaryIO]] |
-                     list[tuple[str, bytes | BinaryIO, str]] |
-                     list[tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
+                     dict[str, tuple[str, bytes | BinaryIO]] |
+                     dict[str, tuple[str, bytes | BinaryIO, str]] |
+                     dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
               auth: str = None,
               timeout: float | None = HTTP_POST_TIMEOUT,
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
 
-    To send multipart-encoded files, the optional *files* parameter is used, formatted as:
-      - a *dict* holding *file-name: file-content* pairs, or
-      - a *list* of 2-*tuple* holding *file-name, file-content* pairs
-      - a *list* of 3-*tuple* holding *file-name, file-content, content-type* triplets
-      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruplets
+    To send multipart-encoded files, the optional *files* parameter is used, formatted as
+    a *dict* holding pairs of *name* and:
+      - a *file-content*
+      - a 2-*tuple* holding *file-name, file-content*
+      - a 3-*tuple* holding *file-name, file-content, content-type*
+      - a 4-*tuple* holding *file-name, file-content, content-type, custom-headers*
     These parameter elements are:
       - *file-name*: the file name
       _ *file-content*: file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
@@ -386,20 +386,21 @@ def http_rest(errors: list[str],
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               files: dict[str, bytes | BinaryIO] |
-                     list[tuple[str, bytes | BinaryIO]] |
-                     list[tuple[str, bytes | BinaryIO, str]] |
-                     list[tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
+                     dict[str, tuple[str, bytes | BinaryIO]] |
+                     dict[str, tuple[str, bytes | BinaryIO, str]] |
+                     dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
               auth: str = None,
               timeout: float = None,
               logger: Logger = None) -> Response:
     """
     Issue a *REST* request to the given *url*, and return the response received.
 
-    To send multipart-encoded files, the optional *files* parameter is used, formatted as:
-      - a *dict* holding *file-name: file-content* pairs, or
-      - a *list* of 2-*tuple* holding *file-name, file-content* pairs
-      - a *list* of 3-*tuple* holding *file-name, file-content, content-type* triplets
-      - a *list* of 4-*tuple* holding *file-name, file-content, content-type, custom-headers* quadruplets
+    To send multipart-encoded files, the optional *files* parameter is used, formatted as
+    a *dict* holding pairs of *name* and:
+      - a *file-content*
+      - a 2-*tuple* holding *file-name, file-content*
+      - a 3-*tuple* holding *file-name, file-content, content-type*
+      - a 4-*tuple* holding *file-name, file-content, content-type, custom-headers*
     These parameter elements are:
       - *file-name*: the file name
       _ *file-content*: the file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
@@ -423,8 +424,8 @@ def http_rest(errors: list[str],
     # initialize the return variable
     result: Response | None = None
 
-    # clone the headers object (it accepts None)
-    op_headers: dict = copy.copy(headers)
+    # clone the headers object
+    op_headers: dict[str, str] = headers.copy() if headers else None
 
     # initialize the error message
     err_msg: str | None = None
@@ -456,34 +457,21 @@ def http_rest(errors: list[str],
         if not err_msg and not op_errors:
 
             # adjust the 'files' parameter, converting 'bytes' to a file pointer
-            x_files: Any
-            if method != "POST":
-                x_files = None
-            elif isinstance(files, dict):
-                # 'files' is type 'dict[str, bytes | BinaryIO]'
-                x_files = {}
+            x_files: Any = None
+            if method == "POST" and isinstance(files, dict):
+                # SANITY-CHECK: use a copy of 'files'
+                x_files: dict[str, Any] = files.copy()
                 for key, value in files.items():
                     if isinstance(value, bytes):
+                        # 'files' is type 'dict[str, bytes]'
                         x_files[key] = BytesIO(value)
                         x_files[key].seek(0)
-                    else:
-                        x_files[key] = value
-            elif isinstance(files, list):
-                # 'files' is type
-                #   'list[tuple[str, bytes | BinaryIO]]' or
-                #   'list[tuple[str, bytes | BinaryIO, str]]' or
-                #   'list[tuple[str, bytes | BinaryIO, str, dict[str, Any]]]'
-                x_files = []
-                for t_file in files:
-                    if isinstance(t_file[1], bytes):
-                        x_file: list = list(t_file)
-                        x_file[1] = BytesIO(t_file[1])
-                        x_file[1].seek(0)
-                        x_files.append(tuple(x_file))
-                    else:
-                        x_files.append(t_file)
-            else:
-                x_files = files
+                    elif isinstance(value, tuple) and isinstance(value[1], bytes):
+                        # 'value' is type 'tuple[str, bytes, ...]'
+                        x_files[key] = list(value)
+                        x_files[key][1] = BytesIO(value[1])
+                        x_files[key][1].seek(0)
+                        x_files[key] = tuple(x_files[key])
 
             # send the request
             result = requests.request(method=method,
