@@ -5,7 +5,7 @@ from flask import Request
 from logging import Logger
 from io import BytesIO
 from pypomes_core import APP_PREFIX, env_get_float, exc_format
-from pypomes_security import access_get_token
+from pypomes_jwt import jwt_get_token
 from requests import Response
 from typing import Any, Final, Literal, BinaryIO
 
@@ -153,7 +153,7 @@ def http_get_parameters(request: Request) -> dict[str, Any]:
 def http_delete(errors: list[str] | None,
                 url: str,
                 headers: dict[str, str] = None,
-                params: dict[str, str]  = None,
+                params: dict[str, Any]  = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
                 auth: str = None,
@@ -188,7 +188,7 @@ def http_delete(errors: list[str] | None,
 def http_get(errors: list[str] | None,
              url: str,
              headers: dict[str, str] = None,
-             params: dict[str, str]  = None,
+             params: dict[str, Any]  = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              auth: str = None,
@@ -223,7 +223,7 @@ def http_get(errors: list[str] | None,
 def http_head(errors: list[str] | None,
               url: str,
               headers: dict[str, str] = None,
-              params: dict[str, str]  = None,
+              params: dict[str, Any]  = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               auth: str = None,
@@ -258,7 +258,7 @@ def http_head(errors: list[str] | None,
 def http_patch(errors: list[str] | None,
                url: str,
                headers: dict[str, str] = None,
-               params: dict[str, str]  = None,
+               params: dict[str, Any]  = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
                auth: str = None,
@@ -293,7 +293,7 @@ def http_patch(errors: list[str] | None,
 def http_post(errors: list[str] | None,
               url: str,
               headers: dict[str, str] = None,
-              params: dict[str, str]  = None,
+              params: dict[str, Any]  = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               files: dict[str, bytes | BinaryIO] |
@@ -308,15 +308,15 @@ def http_post(errors: list[str] | None,
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as
     a *dict* holding pairs of *name* and:
-      - a *file-content*
-      - a 2-*tuple* holding *file-name, file-content*
-      - a 3-*tuple* holding *file-name, file-content, content-type*
-      - a 4-*tuple* holding *file-name, file-content, content-type, custom-headers*
+      - a *file-content*, or
+      - a *tuple* holding *file-name, file-content*, or
+      - a *tuple* holding *file-name, file-content, content-type*, or
+      - a *tuple* holding *file-name, file-content, content-type, custom-headers*
     These parameter elements are:
-      - *file-name*: the file name
-      _ *file-content*: file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
+      - *file-name*: the name of the file
+      _ *file-content*: the file contents, or a pointer obtained from *Path.open()* or *BytesIO*
       - *content-type*: the mimetype of the file
-      - *custom-headers*: a *dict* containing additional headers to add for the file
+      - *custom-headers*: a *dict* containing additional headers for the file
 
     :param errors: incidental error messages
     :param url: the destination URL
@@ -346,7 +346,7 @@ def http_post(errors: list[str] | None,
 def http_put(errors: list[str] | None,
              url: str,
              headers: dict[str, str] = None,
-             params: dict[str, str]  = None,
+             params: dict[str, Any]  = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              auth: str = None,
@@ -382,7 +382,7 @@ def http_rest(errors: list[str],
               method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
               url: str,
               headers: dict[str, str] = None,
-              params: dict[str, str]  = None,
+              params: dict[str, Any]  = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               files: dict[str, bytes | BinaryIO] |
@@ -397,15 +397,15 @@ def http_rest(errors: list[str],
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as
     a *dict* holding pairs of *name* and:
-      - a *file-content*
-      - a 2-*tuple* holding *file-name, file-content*
-      - a 3-*tuple* holding *file-name, file-content, content-type*
-      - a 4-*tuple* holding *file-name, file-content, content-type, custom-headers*
+      - a *file-content*, or
+      - a *tuple* holding *file-name, file-content*, or
+      - a *tuple* holding *file-name, file-content, content-type*, or
+      - a *tuple* holding *file-name, file-content, content-type, custom-headers*
     These parameter elements are:
-      - *file-name*: the file name
-      _ *file-content*: the file bytes, or a pointer obtained from *Path.open()*  or *BytesIO*
+      - *file-name*: the name of the file
+      _ *file-content*: the file contents, or a pointer obtained from *Path.open()* or *BytesIO*
       - *content-type*: the mimetype of the file
-      - *custom-headers*: a *dict* containing additional headers to add for the file
+      - *custom-headers*: a *dict* containing additional headers for the file
      The *files* parameter is considered if *method* is *POST*, and disregarded otherwise.
 
     :param errors: incidental error messages
@@ -437,14 +437,13 @@ def http_rest(errors: list[str],
         # initialize the local errors list
         op_errors: list[str] = []
 
-        # satisfy authorization requirements, if applicable
+        # satisfy authorization requirements
         if auth:
             if auth.startswith("bearer:"):
-                # request authentiation token
-                token: str = access_get_token(errors=op_errors,
-                                              service_url=auth[7:],
-                                              timeout=timeout,
-                                              logger=logger)
+                # request authentication token
+                token: str = jwt_get_token(errors=op_errors,
+                                           service_url=auth[7:],
+                                           logger=logger)
                 if not op_errors:
                     op_headers = op_headers or {}
                     op_headers["Authorization"] = f"Bearer {token}"
