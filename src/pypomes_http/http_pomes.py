@@ -439,10 +439,10 @@ def http_rest(errors: list[str],
 
         # satisfy authorization requirements
         if auth:
-            if auth.startswith("bearer:"):
+            if auth.startswith("Bearer: "):
                 # request authentication token
                 token: str = jwt_get_token(errors=op_errors,
-                                           service_url=auth[7:],
+                                           service_url=auth[8:],
                                            logger=logger)
                 if not op_errors:
                     op_headers = op_headers or {}
