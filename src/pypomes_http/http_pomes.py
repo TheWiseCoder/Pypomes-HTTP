@@ -480,59 +480,59 @@ def http_rest(errors: list[str],
     if logger:
         logger.debug(msg=f"{method} '{url}'")
 
-    try:
-        # initialize the local errors list
-        op_errors: list[str] = []
+    # initialize the local errors list
+    op_errors: list[str] = []
 
-        # satisfy authorization requirements
-        jwt_data: dict[str, Any] = dict(auth or {})
-        if jwt_data:
-            # is it a 'Bearer Authentication' ?
-            if jwt_data.pop("scheme", None) == "bearer":
-                # yes, request the authentication token
-                service_url: str = jwt_data.pop("url")
-                # request token internally or externally (defaults to internally)
-                if jwt_data.pop("is_external", False):
-                    # request externally
-                    jwt_data = jwt_request_token(errors=op_errors,
-                                                 service_url=service_url,
-                                                 claims=jwt_data,
-                                                 timeout=timeout,
-                                                 logger=logger)
-                else:
-                    # request internally
-                    jwt_data = {"access_token": jwt_get_token(errors=op_errors,
-                                                              service_url=service_url,
-                                                              logger=logger)}
-                if not op_errors:
-                    op_headers = op_headers or {}
-                    op_headers["Authorization"] = f"Bearer {jwt_data.get('access_token')}"
-                elif isinstance(errors, list):
-                    errors.extend(op_errors)
+    # satisfy authorization requirements
+    jwt_data: dict[str, Any] = dict(auth or {})
+    if jwt_data:
+        # is it a 'Bearer Authentication' ?
+        if jwt_data.pop("scheme", None) == "bearer":
+            # yes, request the authentication token
+            provider: str = jwt_data.pop("provider")
+            # are there extra parameters in 'jwt_data' ?
+            if jwt_data:
+                # yes, obtain token data externally
+                jwt_data = jwt_request_token(errors=op_errors,
+                                             service_url=provider,
+                                             claims=jwt_data,
+                                             timeout=timeout,
+                                             logger=logger)
             else:
-                # no, report the problem
-                err_msg = f"Authentication scheme {auth.get('scheme')} not implemented"
+                # no, obtain token data internally
+                jwt_data = {"access_token": jwt_get_token(errors=op_errors,
+                                                          service_url=provider,
+                                                          logger=logger)}
+            if not op_errors:
+                op_headers = op_headers or {}
+                op_headers["Authorization"] = f"Bearer {jwt_data.get('access_token')}"
+            elif isinstance(errors, list):
+                errors.extend(op_errors)
+        else:
+            # no, report the problem
+            err_msg = f"Authentication scheme {auth.get('scheme')} not implemented"
 
-        # proceed if no errors
-        if not err_msg and not op_errors:
-            # adjust the 'files' parameter, converting 'bytes' to a file pointer
-            x_files: Any = None
-            if method == "POST" and isinstance(files, dict):
-                # SANITY-CHECK: use a copy of 'files'
-                x_files: dict[str, Any] = files.copy()
-                for key, value in files.items():
-                    if isinstance(value, bytes):
-                        # 'files' is type 'dict[str, bytes]'
-                        x_files[key] = BytesIO(value)
-                        x_files[key].seek(0)
-                    elif isinstance(value, tuple) and isinstance(value[1], bytes):
-                        # 'value' is type 'tuple[str, bytes, ...]'
-                        x_files[key] = list(value)
-                        x_files[key][1] = BytesIO(value[1])
-                        x_files[key][1].seek(0)
-                        x_files[key] = tuple(x_files[key])
+    # proceed if no errors
+    if not err_msg and not op_errors:
+        # adjust the 'files' parameter, converting 'bytes' to a file pointer
+        x_files: Any = None
+        if method == "POST" and isinstance(files, dict):
+            # SANITY-CHECK: use a copy of 'files'
+            x_files: dict[str, Any] = files.copy()
+            for key, value in files.items():
+                if isinstance(value, bytes):
+                    # 'files' is type 'dict[str, bytes]'
+                    x_files[key] = BytesIO(value)
+                    x_files[key].seek(0)
+                elif isinstance(value, tuple) and isinstance(value[1], bytes):
+                    # 'value' is type 'tuple[str, bytes, ...]'
+                    x_files[key] = list(value)
+                    x_files[key][1] = BytesIO(value[1])
+                    x_files[key][1].seek(0)
+                    x_files[key] = tuple(x_files[key])
 
-            # send the request
+        # send the request
+        try:
             result = requests.request(method=method,
                                       url=url,
                                       headers=op_headers,
@@ -546,19 +546,19 @@ def http_rest(errors: list[str],
                 logger.debug(msg=(f"{method} '{url}': "
                                   f"status {result.status_code} "
                                   f"({http_status_name(result.status_code)})"))
+        except Exception as e:
+            # the operation raised an exception
+            exc_err: str = exc_format(exc=e,
+                                      exc_info=sys.exc_info())
+            err_msg = f"{method} '{url}': error, '{exc_err}'"
 
-            # was the request successful ?
-            if not result or \
-               result.status_code < 200 or \
-               result.status_code >= 300:
-                # no, report the problem
-                err_msg = (f"{method} '{url}': failed, "
-                           f"status {result.status_code}, reason '{result.reason}'")
-    except Exception as e:
-        # the operation raised an exception
-        exc_err: str = exc_format(exc=e,
-                                  exc_info=sys.exc_info())
-        err_msg = f"{method} '{url}': error, '{exc_err}'"
+        # was the request successful ?
+        if not result or \
+           result.status_code < 200 or \
+           result.status_code >= 300:
+            # no, report the problem
+            err_msg = (f"{method} '{url}': failed, "
+                       f"status {result.status_code}, reason '{result.reason}'")
 
     # is there an error message ?
     if err_msg:
