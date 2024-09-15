@@ -5,7 +5,7 @@ from flask import Request
 from logging import Logger
 from io import BytesIO
 from pypomes_core import APP_PREFIX, env_get_float, exc_format
-from pypomes_jwt import jwt_get_token
+from pypomes_jwt import jwt_get_token, jwt_request_token
 from requests import Response
 from typing import Any, Final, Literal, BinaryIO
 
@@ -115,9 +115,7 @@ def http_get_parameter(request: Request,
     if result is None:
         # no, look for parameter in the JSON data
         with contextlib.suppress(Exception):
-            params = request.get_json()
-            if params:
-                result = params.get(param)
+            result = request.get_json().get(param)
 
     return result
 
@@ -156,11 +154,18 @@ def http_delete(errors: list[str] | None,
                 params: dict[str, Any]  = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
-                auth: str = None,
+                auth: dict[str, Any] = None,
                 timeout: float | None = HTTP_DELETE_TIMEOUT,
                 logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     :param errors: incidental error messages
     :param url: the destination URL
@@ -169,7 +174,7 @@ def http_delete(errors: list[str] | None,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
+    :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
     :return: the response to the DELETE operation, or 'None' if an error ocurred
     """
@@ -191,11 +196,18 @@ def http_get(errors: list[str] | None,
              params: dict[str, Any]  = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             auth: str = None,
+             auth: dict[str, Any] = None,
              timeout: float | None = HTTP_GET_TIMEOUT,
              logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     :param errors: incidental error messages
     :param url: the destination URL
@@ -204,7 +216,7 @@ def http_get(errors: list[str] | None,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
+    :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
     :param logger: optional logger
     :return: the response to the GET operation, or 'None' if an error ocurred
     """
@@ -226,11 +238,18 @@ def http_head(errors: list[str] | None,
               params: dict[str, Any]  = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
-              auth: str = None,
+              auth: dict[str, Any] = None,
               timeout: float | None = HTTP_HEAD_TIMEOUT,
               logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     :param errors: incidental error messages
     :param url: the destination URL
@@ -239,7 +258,7 @@ def http_head(errors: list[str] | None,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
+    :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
     :param logger: optional logger
     :return: the response to the HEAD operation, or 'None' if an error ocurred
     """
@@ -261,11 +280,18 @@ def http_patch(errors: list[str] | None,
                params: dict[str, Any]  = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
-               auth: str = None,
+               auth: dict[str, Any] = None,
                timeout: float | None = HTTP_PATCH_TIMEOUT,
                logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     :param errors: incidental error messages
     :param url: the destination URL
@@ -274,7 +300,7 @@ def http_patch(errors: list[str] | None,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
+    :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
     :return: the response to the PATCH operation, or 'None' if an error ocurred
     """
@@ -300,11 +326,18 @@ def http_post(errors: list[str] | None,
                      dict[str, tuple[str, bytes | BinaryIO]] |
                      dict[str, tuple[str, bytes | BinaryIO, str]] |
                      dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
-              auth: str = None,
+              auth: dict[str, Any] = None,
               timeout: float | None = HTTP_POST_TIMEOUT,
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as
     a *dict* holding pairs of *name* and:
@@ -326,7 +359,7 @@ def http_post(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
+    :param timeout: request timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
     :return: the response to the POST operation, or 'None' if an error ocurred
     """
@@ -349,11 +382,18 @@ def http_put(errors: list[str] | None,
              params: dict[str, Any]  = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             auth: str = None,
+             auth: dict[str, Any] = None,
              timeout: float | None = HTTP_PUT_TIMEOUT,
              logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     :param errors: incidental error messages
     :param url: the destination URL
@@ -362,7 +402,7 @@ def http_put(errors: list[str] | None,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
+    :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
     :return: the response to the PUT operation, or 'None' if an error ocurred
     """
@@ -389,11 +429,18 @@ def http_rest(errors: list[str],
                      dict[str, tuple[str, bytes | BinaryIO]] |
                      dict[str, tuple[str, bytes | BinaryIO, str]] |
                      dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]] = None,
-              auth: str = None,
+              auth: dict[str, Any] = None,
               timeout: float = None,
               logger: Logger = None) -> Response:
     """
     Issue a *REST* request to the given *url*, and return the response received.
+
+    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
+    {
+      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+      "url": <url>                     - the URL for obtaining the JWT token
+      "<claim_i...n>": <jwt-claim>     - optional claims
+    }
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as
     a *dict* holding pairs of *name* and:
@@ -417,7 +464,7 @@ def http_rest(errors: list[str],
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
     :param auth: optional authentication scheme to use
-    :param timeout: timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use 'None' to omit)
+    :param timeout: request timeout, in seconds (defaults to 'None')
     :param logger: optional logger to log the operation with
     :return: the response to the REST operation, or 'None' if an error ocurred
     """
@@ -438,23 +485,36 @@ def http_rest(errors: list[str],
         op_errors: list[str] = []
 
         # satisfy authorization requirements
-        if auth:
-            if auth.startswith("Bearer: "):
-                # request authentication token
-                token: str = jwt_get_token(errors=op_errors,
-                                           service_url=auth[8:],
-                                           logger=logger)
+        jwt_data: dict[str, Any] = dict(auth or {})
+        if jwt_data:
+            # is it a 'Bearer Authentication' ?
+            if jwt_data.pop("scheme", None) == "bearer":
+                # yes, request the authentication token
+                service_url: str = jwt_data.pop("url")
+                # request token internally or externally (defaults to internally)
+                if jwt_data.pop("is_external", False):
+                    # request externally
+                    jwt_data = jwt_request_token(errors=op_errors,
+                                                 service_url=service_url,
+                                                 claims=jwt_data,
+                                                 timeout=timeout,
+                                                 logger=logger)
+                else:
+                    # request internally
+                    jwt_data = {"access_token": jwt_get_token(errors=op_errors,
+                                                              service_url=service_url,
+                                                              logger=logger)}
                 if not op_errors:
                     op_headers = op_headers or {}
-                    op_headers["Authorization"] = f"Bearer {token}"
+                    op_headers["Authorization"] = f"Bearer {jwt_data.get('access_token')}"
                 elif isinstance(errors, list):
                     errors.extend(op_errors)
             else:
-                err_msg = f"Authentication scheme '{auth}' not implemented"
+                # no, report the problem
+                err_msg = f"Authentication scheme {auth.get('scheme')} not implemented"
 
         # proceed if no errors
         if not err_msg and not op_errors:
-
             # adjust the 'files' parameter, converting 'bytes' to a file pointer
             x_files: Any = None
             if method == "POST" and isinstance(files, dict):

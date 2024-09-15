@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 from logging import Logger
 from pypomes_core import TIMEZONE_LOCAL
-from typing import Literal
+from typing import Any, Literal
 from requests import Response
 
 from .http_pomes import http_rest
@@ -23,11 +23,11 @@ class HttpAsync(threading.Thread):
                  job_method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
                  callback: callable = None,
                  report_content: bool = False,
-                 headers: dict = None,
-                 params: dict = None,
-                 data: dict = None,
-                 json: dict = None,
-                 auth: str = None,
+                 headers: dict[str, Any] = None,
+                 params: dict[str, Any] = None,
+                 data: dict[str, Any] = None,
+                 json: dict[str, Any] = None,
+                 auth: dict[str, Any] = None,
                  timeout: float = None,
                  logger: Logger = None) -> None:
         """
@@ -35,13 +35,19 @@ class HttpAsync(threading.Thread):
 
         if a *callback* is specified, it will be sent the results of the job invocaton, in *JSON* format.
         This is the structure of the results sent:
-
         {
             "job-name": "<str>"            -- the name given for the job
             "start": "<iso-date>",         -- timestamp of invocation start (ISO format)
             "finish": "<iso-date>",        -- timestamp of invocation finish (ISO format)
             "errors": "<errors-reported>"  -- errors returned by the service, if applicable
             "content": "<bytes-in-BASE64>" -- Base64-wrapped contents of the response
+        }
+
+        Optionally, *Bearer Authorization* data may be provided in *auth*, with the structure:
+        {
+          "scheme": <authorization-scheme> - currently, only "bearer" is accepted
+          "url": <url>                     - the URL for obtaining the JWT token
+          "<claim_i...n>": <jwt-claim>     - optional claims
         }
 
         :param job_name: the name of the job being invoked
@@ -60,15 +66,15 @@ class HttpAsync(threading.Thread):
         # instance attributes
         self.job_name: str = job_name
         self.job_url: str = job_url
-        self.job_method = job_method
-        self.callback = callback
-        self.report_content = report_content
-        self.headers = headers
-        self.params = params
-        self.data = data
-        self.json = json
-        self.auth = auth
-        self.timeout = timeout
+        self.job_method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"] = job_method
+        self.callback: callable = callback
+        self.report_content: bool = report_content
+        self.headers: dict[str, Any] = headers
+        self.params: dict[str, Any] = params
+        self.data: dict[str, Any] = data
+        self.json: dict[str, Any] = json
+        self.auth: dict[str, Any] = auth
+        self.timeout: float = timeout
         self.logger: Logger = logger
 
         self.start_timestamp: str | None = None
@@ -111,7 +117,7 @@ class HttpAsync(threading.Thread):
         # has a callback been specified ?
         if self.callback:
             # yes, send it the results of the service invocation
-            reply: dict = {
+            reply: dict[str, Any] = {
                 "job-name": self.job_name,
                 "start": self.start_timestamp,
                 "finish": self.finish_timestamp,
@@ -122,8 +128,7 @@ class HttpAsync(threading.Thread):
                 reply["errors"] = json.dumps(obj=errors,
                                              ensure_ascii=False)
             # return the response's content, if appropriate
-            if (self.report_content
-                and response and
+            if (self.report_content and response and
                 hasattr(response, "content") and
                 isinstance(response.content, bytes)):
                 reply["content"] = base64.b64encode(response.content).decode()
