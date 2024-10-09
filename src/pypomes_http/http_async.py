@@ -128,7 +128,8 @@ class HttpAsync(threading.Thread):
                 reply["errors"] = json.dumps(obj=errors,
                                              ensure_ascii=False)
             # return the response's content, if appropriate
-            if (self.report_content and response and
+            if (self.report_content and
+                response is not None and
                 hasattr(response, "content") and
                 isinstance(response.content, bytes)):
                 reply["content"] = base64.b64encode(response.content).decode()
