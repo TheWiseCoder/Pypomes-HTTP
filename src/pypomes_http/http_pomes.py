@@ -5,7 +5,6 @@ from flask import Request
 from logging import Logger
 from io import BytesIO
 from pypomes_core import APP_PREFIX, env_get_float, exc_format
-from pypomes_jwt import jwt_get_token, jwt_request_token
 from requests import Response
 from typing import Any, Final, Literal, BinaryIO
 
@@ -488,7 +487,9 @@ def http_rest(errors: list[str],
     if jwt_data:
         # is it a 'Bearer Authentication' ?
         if jwt_data.pop("scheme", None) == "bearer":
-            # yes, request the authentication token
+            # yes, import the JWT implementation packages
+            from pypomes_jwt import jwt_get_token, jwt_request_token
+            # request the authentication token
             provider: str = jwt_data.pop("provider")
             # are there extra parameters in 'jwt_data' ?
             if jwt_data:
