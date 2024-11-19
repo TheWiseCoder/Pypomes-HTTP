@@ -1,6 +1,7 @@
 import contextlib
 import requests
 import sys
+from enum import StrEnum
 from flask import Request
 from logging import Logger
 from io import BytesIO
@@ -37,6 +38,15 @@ MIMETYPE_TEXT: Final[str] = "text/plain"
 MIMETYPE_URLENCODED: Final[str] = "application/x-www-form-urlencoded"
 MIMETYPE_XML: Final[str] = "application/xml"
 MIMETYPE_ZIP: Final[str] = "application/zip"
+
+
+class HttpMethod(StrEnum):
+    DELETE = "DELETE",
+    GET = "GET",
+    HEAD = "HEAD",
+    PATCH = "PATH",
+    POST = "POST",
+    PUT = "PUT"
 
 
 def http_status_code(status_name: str) -> int:
@@ -150,7 +160,7 @@ def http_get_parameters(request: Request) -> dict[str, Any]:
 def http_delete(errors: list[str] | None,
                 url: str,
                 headers: dict[str, str] = None,
-                params: dict[str, Any]  = None,
+                params: dict[str, Any] = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
                 auth: dict[str, Any] = None,
@@ -178,7 +188,7 @@ def http_delete(errors: list[str] | None,
     :return: the response to the DELETE operation, or 'None' if an error ocurred
     """
     return http_rest(errors=errors,
-                     method="DELETE",
+                     method=HttpMethod.DELETE,
                      url=url,
                      headers=headers,
                      params=params,
@@ -192,7 +202,7 @@ def http_delete(errors: list[str] | None,
 def http_get(errors: list[str] | None,
              url: str,
              headers: dict[str, str] = None,
-             params: dict[str, Any]  = None,
+             params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              auth: dict[str, Any] = None,
@@ -220,7 +230,7 @@ def http_get(errors: list[str] | None,
     :return: the response to the GET operation, or 'None' if an error ocurred
     """
     return http_rest(errors=errors,
-                     method="GET",
+                     method=HttpMethod.GET,
                      url=url,
                      headers=headers,
                      params=params,
@@ -234,7 +244,7 @@ def http_get(errors: list[str] | None,
 def http_head(errors: list[str] | None,
               url: str,
               headers: dict[str, str] = None,
-              params: dict[str, Any]  = None,
+              params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               auth: dict[str, Any] = None,
@@ -262,7 +272,7 @@ def http_head(errors: list[str] | None,
     :return: the response to the HEAD operation, or 'None' if an error ocurred
     """
     return http_rest(errors=errors,
-                     method="HEAD",
+                     method=HttpMethod.HEAD,
                      url=url,
                      headers=headers,
                      params=params,
@@ -276,7 +286,7 @@ def http_head(errors: list[str] | None,
 def http_patch(errors: list[str] | None,
                url: str,
                headers: dict[str, str] = None,
-               params: dict[str, Any]  = None,
+               params: dict[str, Any] = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
                auth: dict[str, Any] = None,
@@ -304,7 +314,7 @@ def http_patch(errors: list[str] | None,
     :return: the response to the PATCH operation, or 'None' if an error ocurred
     """
     return http_rest(errors=errors,
-                     method="PATCH",
+                     method=HttpMethod.PATCH,
                      url=url,
                      headers=headers,
                      params=params,
@@ -318,9 +328,10 @@ def http_patch(errors: list[str] | None,
 def http_post(errors: list[str] | None,
               url: str,
               headers: dict[str, str] = None,
-              params: dict[str, Any]  = None,
+              params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
+              # noqa
               files: dict[str, bytes | BinaryIO] |
                      dict[str, tuple[str, bytes | BinaryIO]] |
                      dict[str, tuple[str, bytes | BinaryIO, str]] |
@@ -363,7 +374,7 @@ def http_post(errors: list[str] | None,
     :return: the response to the POST operation, or 'None' if an error ocurred
     """
     return http_rest(errors=errors,
-                     method="POST",
+                     method=HttpMethod.POST,
                      url=url,
                      headers=headers,
                      params=params,
@@ -378,7 +389,7 @@ def http_post(errors: list[str] | None,
 def http_put(errors: list[str] | None,
              url: str,
              headers: dict[str, str] = None,
-             params: dict[str, Any]  = None,
+             params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              auth: dict[str, Any] = None,
@@ -406,7 +417,7 @@ def http_put(errors: list[str] | None,
     :return: the response to the PUT operation, or 'None' if an error ocurred
     """
     return http_rest(errors=errors,
-                     method="PUT",
+                     method=HttpMethod.PUT,
                      url=url,
                      headers=headers,
                      params=params,
@@ -418,12 +429,13 @@ def http_put(errors: list[str] | None,
 
 
 def http_rest(errors: list[str],
-              method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
+              method: HttpMethod,
               url: str,
               headers: dict[str, str] = None,
-              params: dict[str, Any]  = None,
+              params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
+              # noqa
               files: dict[str, bytes | BinaryIO] |
                      dict[str, tuple[str, bytes | BinaryIO]] |
                      dict[str, tuple[str, bytes | BinaryIO, str]] |
@@ -517,7 +529,7 @@ def http_rest(errors: list[str],
     if not err_msg and not op_errors:
         # adjust the 'files' parameter, converting 'bytes' to a file pointer
         x_files: Any = None
-        if method == "POST" and isinstance(files, dict):
+        if method == HttpMethod.POST and isinstance(files, dict):
             # SANITY-CHECK: use a copy of 'files'
             x_files: dict[str, Any] = files.copy()
             for key, value in files.items():
@@ -534,7 +546,7 @@ def http_rest(errors: list[str],
 
         # send the request
         try:
-            result = requests.request(method=method,
+            result = requests.request(method=method.name,
                                       url=url,
                                       headers=op_headers,
                                       params=params,

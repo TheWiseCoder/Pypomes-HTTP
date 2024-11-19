@@ -6,25 +6,25 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pypomes_http"
-version = "0.4.1"
+version = "0.4.5"
 authors = [
   { name="GT Nunes", email="wisecoder01@gmail.com" }
 ]
 description = "A collection of Python pomes, penyeach (HTTP modules)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
 dependencies = [
-    "Flask>=3.0.3",
-    "pip>=24.2",
-    "pypomes_core>=1.5.9",
+    "Flask>=3.1.0",
+    "pip>=24.3.1",
+    "pypomes_core>=1.6.2",
     "requests>=2.32.3",
-    "setuptools>=75.2.0",
-    "wheel>=0.44.0"
+    "setuptools>=75.5.0",
+    "wheel>=0.45.0"
 #   "pypomes_jwt>=0.5.0"
 ]
 

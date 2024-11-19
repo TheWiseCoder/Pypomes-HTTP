@@ -4,10 +4,10 @@ import threading
 from datetime import datetime
 from logging import Logger
 from pypomes_core import TIMEZONE_LOCAL
-from typing import Any, Literal
+from typing import Any
 from requests import Response
 
-from .http_pomes import http_rest
+from .http_pomes import HttpMethod, http_rest
 
 
 class HttpAsync(threading.Thread):
@@ -20,7 +20,7 @@ class HttpAsync(threading.Thread):
     def __init__(self,
                  job_name: str,
                  job_url: str,
-                 job_method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
+                 job_method: HttpMethod,
                  callback: callable = None,
                  report_content: bool = False,
                  headers: dict[str, Any] = None,
@@ -66,7 +66,7 @@ class HttpAsync(threading.Thread):
         # instance attributes
         self.job_name: str = job_name
         self.job_url: str = job_url
-        self.job_method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"] = job_method
+        self.job_method: HttpMethod = job_method
         self.callback: callable = callback
         self.report_content: bool = report_content
         self.headers: dict[str, Any] = headers
@@ -119,6 +119,7 @@ class HttpAsync(threading.Thread):
             # yes, send it the results of the service invocation
             reply: dict[str, Any] = {
                 "job-name": self.job_name,
+                "job-url": self.job_url,
                 "start": self.start_timestamp,
                 "finish": self.finish_timestamp,
             }
@@ -129,9 +130,9 @@ class HttpAsync(threading.Thread):
                                              ensure_ascii=False)
             # return the response's content, if appropriate
             if (self.report_content and
-                response is not None and
-                hasattr(response, "content") and
-                isinstance(response.content, bytes)):
-                reply["content"] = base64.b64encode(response.content).decode()
+                    response is not None and
+                    hasattr(response, "content") and
+                    isinstance(response.content, bytes)):
+                reply["content"] = base64.b64encode(s=response.content).decode()
             # send message to recipient
             self.callback(reply)
