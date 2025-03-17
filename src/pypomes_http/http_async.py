@@ -7,7 +7,7 @@ from pypomes_core import TIMEZONE_LOCAL
 from typing import Any
 from requests import Response
 
-from . import HttpMethod, http_rest
+from .http_pomes import HttpMethod, http_rest
 
 
 class HttpAsync(threading.Thread):
@@ -92,7 +92,7 @@ class HttpAsync(threading.Thread):
 
         # obtain the JWT token
         if self.jwt_provider:
-            jwt_token = self.jwt_provider(self.job_name)
+            jwt_token: str = self.jwt_provider(self.job_name)
             if jwt_token:
                 self.headers["Authorization"] = f"Bearer {jwt_token}"
 
