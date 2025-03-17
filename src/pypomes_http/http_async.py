@@ -7,7 +7,7 @@ from pypomes_core import TIMEZONE_LOCAL
 from typing import Any
 from requests import Response
 
-from .http_pomes import HttpMethod, http_rest
+from . import HttpMethod, http_rest
 
 
 class HttpAsync(threading.Thread):
@@ -21,19 +21,20 @@ class HttpAsync(threading.Thread):
                  job_name: str,
                  job_url: str,
                  job_method: HttpMethod,
+                 jwt_provider: callable = None,
                  callback: callable = None,
                  report_content: bool = False,
                  headers: dict[str, Any] = None,
                  params: dict[str, Any] = None,
                  data: dict[str, Any] = None,
                  json: dict[str, Any] = None,
-                 auth: dict[str, Any] = None,
                  timeout: float = None,
                  logger: Logger = None) -> None:
         """
         Initiate the asychronous invocation of the *REST* service.
 
-        if a *callback* is specified, it will be sent the results of the job invocaton, in *JSON* format.
+        If a *jwt_provider* is specified, a JWT authorization token is requested prior to invoking the service.
+        If a *callback* is specified, it will be sent the results of the job invocaton, in *JSON* format.
         This is the structure of the results sent:
         {
             "job-name": "<str>"            -- the name given for the job
@@ -43,21 +44,14 @@ class HttpAsync(threading.Thread):
             "content": "<bytes-in-BASE64>" -- Base64-wrapped contents of the response
         }
 
-        Optionally, *Bearer Authorization* data may be provided in *auth*, with the structure:
-        {
-          "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-          "url": <url>                     - the URL for obtaining the JWT token
-          "<claim_i...n>": <jwt-claim>     - optional claims
-        }
-
         :param job_name: the name of the job being invoked
         :param job_url: the job's URL
         :param job_method: the HTTP method to use (DELETE, GET, HEAD, PATCH, POST, PUT)
         :param callback: the function to call on job termination
+        :param jwt_provider: option JWT token provider
         :param report_content: whether to report the response's content to callback
         :param headers: optional headers
         :param params: optional parameters
-        :param auth: optional authentication scheme to use
         :param timeout: timeout, in seconds (defaults to None)
         :param logger: optional logger
         """
@@ -68,12 +62,12 @@ class HttpAsync(threading.Thread):
         self.job_url: str = job_url
         self.job_method: HttpMethod = job_method
         self.callback: callable = callback
+        self.jwt_provider: callable = jwt_provider
         self.report_content: bool = report_content
         self.headers: dict[str, Any] = headers
         self.params: dict[str, Any] = params
         self.data: dict[str, Any] = data
         self.json: dict[str, Any] = json
-        self.auth: dict[str, Any] = auth
         self.timeout: float = timeout
         self.logger: Logger = logger
 
@@ -96,6 +90,11 @@ class HttpAsync(threading.Thread):
         # obtain the start timestamp
         self.start_timestamp = datetime.now(tz=TIMEZONE_LOCAL).isoformat()
 
+        # obtain the JWT token
+        if self.jwt_provider:
+            jwt_token = self.jwt_provider(self.job_name)
+            self.headers["Authorization"] = f"Bearer {jwt_token}"
+
         # invoke the service
         response: Response = http_rest(errors=errors,
                                        method=self.job_method,
@@ -104,7 +103,6 @@ class HttpAsync(threading.Thread):
                                        params=self.params,
                                        data=self.data,
                                        json=self.json,
-                                       auth=self.auth,
                                        timeout=self.timeout,
                                        logger=self.logger)
 
