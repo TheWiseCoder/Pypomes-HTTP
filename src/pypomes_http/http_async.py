@@ -93,7 +93,8 @@ class HttpAsync(threading.Thread):
         # obtain the JWT token
         if self.jwt_provider:
             jwt_token = self.jwt_provider(self.job_name)
-            self.headers["Authorization"] = f"Bearer {jwt_token}"
+            if jwt_token:
+                self.headers["Authorization"] = f"Bearer {jwt_token}"
 
         # invoke the service
         response: Response = http_rest(errors=errors,
