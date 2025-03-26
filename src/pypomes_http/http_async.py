@@ -84,6 +84,7 @@ class HttpAsync(threading.Thread):
         # initialize the errors list
         errors: list[str] = []
 
+        # log the operation start
         if self.logger:
             self.logger.info(msg=f"Job '{self.job_name}' started")
 
@@ -106,10 +107,10 @@ class HttpAsync(threading.Thread):
                                        json=self.json,
                                        timeout=self.timeout,
                                        logger=self.logger)
-
         # obtain the finish timestamp
         self.finish_timestamp = datetime.now(tz=TIMEZONE_LOCAL).isoformat()
 
+        # log the opertion finish
         if self.logger:
             self.logger.info(msg=f"Job '{self.job_name}' finished")
 

@@ -11,19 +11,6 @@ from typing import Any, Final, Literal, BinaryIO
 
 from .http_statuses import _HTTP_STATUSES
 
-HTTP_DELETE_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
-                                                  def_value=300.)
-HTTP_GET_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_GET_TIMEOUT",
-                                               def_value=300.)
-HTTP_HEAD_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT",
-                                                def_value=300.)
-HTTP_PATCH_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
-                                                 def_value=300.)
-HTTP_POST_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
-                                                def_value=300.)
-HTTP_PUT_TIMEOUT: Final[float] = env_get_float(key=f"{APP_PREFIX}_HTTP_PUT_TIMEOUT",
-                                               def_value=300.)
-
 
 class HttpMethod(StrEnum):
     """
@@ -35,6 +22,26 @@ class HttpMethod(StrEnum):
     PATCH = "PATH"
     POST = "POST"
     PUT = "PUT"
+
+    def __str__(self) -> str:  # noqa: D105
+        # noinspection PyTypeChecker
+        return self.value
+
+
+HTTP_TIMEOUT: Final[dict[HttpMethod, float]] = {
+    HttpMethod.DELETE: env_get_float(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
+                                     def_value=300.),
+    HttpMethod.GET: env_get_float(key=f"{APP_PREFIX}_HTTP_GET_TIMEOUT",
+                                  def_value=300.),
+    HttpMethod.HEAD: env_get_float(key=f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT",
+                                   def_value=300.),
+    HttpMethod.PATCH: env_get_float(key=f"{APP_PREFIX}_HTTP_PATCH_TIMEOUT",
+                                    def_value=300.),
+    HttpMethod.POST: env_get_float(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
+                                   def_value=300.),
+    HttpMethod.PUT: env_get_float(key=f"{APP_PREFIX}_HTTP_PUT_TIMEOUT",
+                                  def_value=300.)
+}
 
 
 def http_status_code(status_name: str) -> int:
@@ -109,12 +116,12 @@ def http_get_parameter(request: Request,
     The following are cumulatively attempted, in the sequence defined by *sources*, defaulting to:
         1. key/value pairs in a *JSON* structure in the request's body
         2. parameters in the URL's query string
-        3. elements in a HTML form
+        3. data elements in a HTML form
 
     :param request: the Request object
     :param sources: the sequence of sources to inspect (defaults to *['body', 'query', 'form']*)
     :param param: name of parameter to retrieve
-    :return: the parameter's value, or 'None' if not found
+    :return: the parameter's value, or *None* if not found
     """
     # initialize the return variable
     result: Any = None
@@ -156,7 +163,7 @@ def http_get_parameters(request: Request,
 
     :param request: the Request object
     :param sources: the sequence of sources to inspect (defaults to *['body', 'query', 'form']*)
-    :return: dict containing the input parameters (empty, if no input data exists)
+    :return: *dict* containing the input parameters (empty, if no input data exists)
     """
     # initialize the return variable
     result: dict[str, Any] = {}
@@ -186,7 +193,7 @@ def http_delete(errors: list[str] | None,
                 params: dict[str, Any] = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
-                timeout: float | None = HTTP_DELETE_TIMEOUT,
+                timeout: float | None = HTTP_TIMEOUT[HttpMethod.DELETE],
                 logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
@@ -206,7 +213,7 @@ def http_delete(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the DELETE operation, or 'None' if an error ocurred
+    :return: the response to the *DELETE* operation, or *None* if an error ocurred
     """
     return http_rest(errors=errors,
                      method=HttpMethod.DELETE,
@@ -225,7 +232,7 @@ def http_get(errors: list[str] | None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             timeout: float | None = HTTP_GET_TIMEOUT,
+             timeout: float | None = HTTP_TIMEOUT[HttpMethod.GET],
              logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
@@ -245,7 +252,7 @@ def http_get(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
     :param logger: optional logger
-    :return: the response to the GET operation, or 'None' if an error ocurred
+    :return: the response to the *GET* operation, or *None* if an error ocurred
     """
     return http_rest(errors=errors,
                      method=HttpMethod.GET,
@@ -264,7 +271,7 @@ def http_head(errors: list[str] | None,
               params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
-              timeout: float | None = HTTP_HEAD_TIMEOUT,
+              timeout: float | None = HTTP_TIMEOUT[HttpMethod.HEAD],
               logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
@@ -284,7 +291,7 @@ def http_head(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
     :param logger: optional logger
-    :return: the response to the HEAD operation, or 'None' if an error ocurred
+    :return: the response to the *HEAD* operation, or *None* if an error ocurred
     """
     return http_rest(errors=errors,
                      method=HttpMethod.HEAD,
@@ -303,7 +310,7 @@ def http_patch(errors: list[str] | None,
                params: dict[str, Any] = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
-               timeout: float | None = HTTP_PATCH_TIMEOUT,
+               timeout: float | None = HTTP_TIMEOUT[HttpMethod.PATCH],
                logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
@@ -323,7 +330,7 @@ def http_patch(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the PATCH operation, or 'None' if an error ocurred
+    :return: the response to the *PATCH* operation, or *None* if an error ocurred
     """
     return http_rest(errors=errors,
                      method=HttpMethod.PATCH,
@@ -346,7 +353,7 @@ def http_post(errors: list[str] | None,
                       dict[str, tuple[str, bytes | BinaryIO]] |
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
-              timeout: float | None = HTTP_POST_TIMEOUT,
+              timeout: float | None = HTTP_TIMEOUT[HttpMethod.POST],
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
@@ -379,7 +386,7 @@ def http_post(errors: list[str] | None,
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the POST operation, or 'None' if an error ocurred
+    :return: the response to the *POST* operation, or *None* if an error ocurred
     """
     return http_rest(errors=errors,
                      method=HttpMethod.POST,
@@ -399,7 +406,7 @@ def http_put(errors: list[str] | None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             timeout: float | None = HTTP_PUT_TIMEOUT,
+             timeout: float | None = HTTP_TIMEOUT[HttpMethod.PUT],
              logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
@@ -419,7 +426,7 @@ def http_put(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the PUT operation, or 'None' if an error ocurred
+    :return: the response to the *PUT* operation, or *None* if an error ocurred
     """
     return http_rest(errors=errors,
                      method=HttpMethod.PUT,
@@ -478,7 +485,7 @@ def http_rest(errors: list[str],
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to 'None')
     :param logger: optional logger to log the operation with
-    :return: the response to the REST operation, or 'None' if an error ocurred
+    :return: the response to the *REST* operation, or *None* if an error ocurred
     """
     # initialize the return variable
     result: Response | None = None
