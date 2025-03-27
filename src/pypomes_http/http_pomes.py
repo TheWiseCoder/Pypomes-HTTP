@@ -23,10 +23,6 @@ class HttpMethod(StrEnum):
     POST = "POST"
     PUT = "PUT"
 
-    def __str__(self) -> str:  # noqa: D105
-        # noinspection PyTypeChecker
-        return self.value
-
 
 HTTP_TIMEOUT: Final[dict[HttpMethod, float]] = {
     HttpMethod.DELETE: env_get_float(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
