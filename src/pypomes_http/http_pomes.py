@@ -1,13 +1,13 @@
 import contextlib
 import requests
 import sys
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from flask import Request
 from logging import Logger
 from io import BytesIO
-from pypomes_core import APP_PREFIX, env_get_float, exc_format
+from pypomes_core import APP_PREFIX, env_get_int, exc_format
 from requests import Response
-from typing import Any, Final, Literal, BinaryIO
+from typing import Any, Literal, BinaryIO
 
 from .http_statuses import _HTTP_STATUSES
 
@@ -24,20 +24,22 @@ class HttpMethod(StrEnum):
     PUT = "PUT"
 
 
-HTTP_TIMEOUT: Final[dict[HttpMethod, float]] = {
-    HttpMethod.DELETE: env_get_float(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
-                                     def_value=300.),
-    HttpMethod.GET: env_get_float(key=f"{APP_PREFIX}_HTTP_GET_TIMEOUT",
-                                  def_value=300.),
-    HttpMethod.HEAD: env_get_float(key=f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT",
-                                   def_value=300.),
-    HttpMethod.PATCH: env_get_float(key=f"{APP_PREFIX}_HTTP_PATCH_TIMEOUT",
-                                    def_value=300.),
-    HttpMethod.POST: env_get_float(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
-                                   def_value=300.),
-    HttpMethod.PUT: env_get_float(key=f"{APP_PREFIX}_HTTP_PUT_TIMEOUT",
-                                  def_value=300.)
-}
+class HttpTimeout(IntEnum):
+    """
+    default timeouts for Http methods.
+    """
+    DELETE = env_get_int(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
+                         def_value=300)
+    GET = env_get_int(key=f"{APP_PREFIX}_HTTP_GET_TIMEOUT",
+                      def_value=300)
+    HEAD = env_get_int(key=f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT",
+                       def_value=300)
+    PATCH = env_get_int(key=f"{APP_PREFIX}_HTTP_PATCH_TIMEOUT",
+                        def_value=300)
+    POST = env_get_int(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
+                       def_value=300)
+    PUT = env_get_int(key=f"{APP_PREFIX}_HTTP_PUT_TIMEOUT",
+                      def_value=300)
 
 
 def http_status_code(status_name: str) -> int:
@@ -189,7 +191,7 @@ def http_delete(errors: list[str] | None,
                 params: dict[str, Any] = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
-                timeout: float | None = HTTP_TIMEOUT[HttpMethod.DELETE],
+                timeout: float | None = HttpTimeout.DELETE.value,
                 logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
@@ -228,7 +230,7 @@ def http_get(errors: list[str] | None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             timeout: float | None = HTTP_TIMEOUT[HttpMethod.GET],
+             timeout: float | None = HttpTimeout.GET.value,
              logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
@@ -267,7 +269,7 @@ def http_head(errors: list[str] | None,
               params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
-              timeout: float | None = HTTP_TIMEOUT[HttpMethod.HEAD],
+              timeout: float | None = HttpTimeout.HEAD.value,
               logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
@@ -306,7 +308,7 @@ def http_patch(errors: list[str] | None,
                params: dict[str, Any] = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
-               timeout: float | None = HTTP_TIMEOUT[HttpMethod.PATCH],
+               timeout: float | None = HttpTimeout.PATCH.value,
                logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
@@ -349,7 +351,7 @@ def http_post(errors: list[str] | None,
                       dict[str, tuple[str, bytes | BinaryIO]] |
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
-              timeout: float | None = HTTP_TIMEOUT[HttpMethod.POST],
+              timeout: float | None = HttpTimeout.POST.value,
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
@@ -402,7 +404,7 @@ def http_put(errors: list[str] | None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             timeout: float | None = HTTP_TIMEOUT[HttpMethod.PUT],
+             timeout: float | None = HttpTimeout.PUT.value,
              logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
@@ -509,7 +511,8 @@ def http_rest(errors: list[str],
     # send the request
     err_msg: str | None = None
     try:
-        result = requests.request(method=method.name,
+        # noinspection PyTypeChecker
+        result = requests.request(method=method.value,
                                   url=url,
                                   headers=headers,
                                   params=params,
