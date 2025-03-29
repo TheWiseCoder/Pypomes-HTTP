@@ -5,7 +5,7 @@ from logging import Logger
 from io import BytesIO
 from pypomes_core import APP_PREFIX, env_get_int, exc_format
 from requests import Response
-from typing import Any, BinaryIO, cast
+from typing import Any, BinaryIO
 
 
 class HttpMethod(StrEnum):
@@ -44,7 +44,7 @@ def http_delete(errors: list[str] | None,
                 params: dict[str, Any] = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
-                timeout: float | None = HttpTimeout.DELETE.value,
+                timeout: float | None = HttpTimeout.DELETE,
                 logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
@@ -76,7 +76,7 @@ def http_get(errors: list[str] | None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             timeout: float | None = HttpTimeout.GET.value,
+             timeout: float | None = HttpTimeout.GET,
              logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
@@ -108,7 +108,7 @@ def http_head(errors: list[str] | None,
               params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
-              timeout: float | None = HttpTimeout.HEAD.value,
+              timeout: float | None = HttpTimeout.HEAD,
               logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
@@ -140,7 +140,7 @@ def http_patch(errors: list[str] | None,
                params: dict[str, Any] = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
-               timeout: float | None = HttpTimeout.PATCH.value,
+               timeout: float | None = HttpTimeout.PATCH,
                logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
@@ -176,7 +176,7 @@ def http_post(errors: list[str] | None,
                       dict[str, tuple[str, bytes | BinaryIO]] |
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
-              timeout: float | None = HttpTimeout.POST.value,
+              timeout: float | None = HttpTimeout.POST,
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
@@ -222,7 +222,7 @@ def http_put(errors: list[str] | None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
-             timeout: float | None = HttpTimeout.PUT.value,
+             timeout: float | None = HttpTimeout.PUT,
              logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
@@ -315,7 +315,7 @@ def http_rest(errors: list[str],
     # send the request
     err_msg: str | None = None
     try:
-        result = requests.request(method=cast("str", method.value),
+        result = requests.request(method=method,
                                   url=url,
                                   headers=headers,
                                   params=params,
@@ -331,10 +331,9 @@ def http_rest(errors: list[str],
                        f"status {result.status_code}, reason '{result.reason}'")
         elif logger:
             # yes, log the result
-            from .http_pomes import HttpStatus
+            from .http_statuses import HttpStatus
             http_status: HttpStatus = HttpStatus(result.status_code)
-            logger.debug(msg=(f"{method} '{url}': "
-                              f"status {http_status.value} ({http_status.name})"))
+            logger.debug(msg=f"{method} '{url}': status {http_status} ({http_status.name})")
     except Exception as e:
         # the operation raised an exception
         err_msg = exc_format(exc=e,

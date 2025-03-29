@@ -1,22 +1,7 @@
 import contextlib
 from base64 import b64encode
 from flask import Request
-from typing import Literal, Any
-
-from .http_statuses import HttpStatus, _HTTP_STATUSES
-
-
-def http_status_description(http_status: HttpStatus,
-                            lang: Literal["en", "pt"] = "en") -> str:
-    """
-    Return the description of the HTTP status *status_code*.
-
-    :param http_status: the HTTP status
-    :param lang: optional language ('en' or 'pt' - defaults to 'en')
-    :return: the corresponding HTTP status description, in the given language
-    """
-    item: dict = _HTTP_STATUSES.get(http_status)
-    return (item or {"en": "Unknown status code", "pt": "Status desconhecido"}).get(lang)
+from typing import Any
 
 
 def http_retrieve_parameters(url: str) -> dict[str, str]:
