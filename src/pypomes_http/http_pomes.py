@@ -1,85 +1,21 @@
 import contextlib
-import requests
-import sys
-from enum import IntEnum, StrEnum
+from base64 import b64encode
 from flask import Request
-from logging import Logger
-from io import BytesIO
-from pypomes_core import APP_PREFIX, env_get_int, exc_format
-from requests import Response
-from typing import Any, Literal, BinaryIO
+from typing import Literal, Any
 
-from .http_statuses import _HTTP_STATUSES
+from .http_statuses import HttpStatus, _HTTP_STATUSES
 
 
-class HttpMethod(StrEnum):
-    """
-    HTTP methods.
-    """
-    DELETE = "DELETE"
-    GET = "GET"
-    HEAD = "HEAD"
-    PATCH = "PATH"
-    POST = "POST"
-    PUT = "PUT"
-
-
-class HttpTimeout(IntEnum):
-    """
-    default timeouts for Http methods.
-    """
-    DELETE = env_get_int(key=f"{APP_PREFIX}_HTTP_DELETE_TIMEOUT",
-                         def_value=300)
-    GET = env_get_int(key=f"{APP_PREFIX}_HTTP_GET_TIMEOUT",
-                      def_value=300)
-    HEAD = env_get_int(key=f"{APP_PREFIX}_HTTP_HEAD_TIMEOUT",
-                       def_value=300)
-    PATCH = env_get_int(key=f"{APP_PREFIX}_HTTP_PATCH_TIMEOUT",
-                        def_value=300)
-    POST = env_get_int(key=f"{APP_PREFIX}_HTTP_POST_TIMEOUT",
-                       def_value=300)
-    PUT = env_get_int(key=f"{APP_PREFIX}_HTTP_PUT_TIMEOUT",
-                      def_value=300)
-
-
-def http_status_code(status_name: str) -> int:
-    """
-    Return the corresponding code of the HTTP status *status_name*.
-
-    :param status_name: the name of HTTP status
-    :return: the corresponding HTTP status code
-    """
-    # initialize the return variable
-    result: int | None = None
-
-    for key, value in _HTTP_STATUSES:
-        if status_name == value["name"]:
-            result = key
-
-    return result
-
-
-def http_status_name(status_code: int) -> str:
-    """
-    Return the corresponding name of the HTTP status *status_code*.
-
-    :param status_code: the code of the HTTP status
-    :return: the corresponding HTTP status name
-    """
-    item: dict = _HTTP_STATUSES.get(status_code)
-    return (item or {"name": "Unknown status code"}).get("name")
-
-
-def http_status_description(status_code: int,
+def http_status_description(http_status: HttpStatus,
                             lang: Literal["en", "pt"] = "en") -> str:
     """
     Return the description of the HTTP status *status_code*.
 
-    :param status_code: the code of the HTTP status
+    :param http_status: the HTTP status
     :param lang: optional language ('en' or 'pt' - defaults to 'en')
     :return: the corresponding HTTP status description, in the given language
     """
-    item: dict = _HTTP_STATUSES.get(status_code)
+    item: dict = _HTTP_STATUSES.get(http_status)
     return (item or {"en": "Unknown status code", "pt": "Status desconhecido"}).get(lang)
 
 
@@ -185,364 +121,46 @@ def http_get_parameters(request: Request,
     return result
 
 
-def http_delete(errors: list[str] | None,
-                url: str,
-                headers: dict[str, str] = None,
-                params: dict[str, Any] = None,
-                data: dict[str, Any] = None,
-                json: dict[str, Any] = None,
-                timeout: float | None = HttpTimeout.DELETE.value,
-                logger: Logger = None) -> Response:
+def http_basic_auth_header(uname: str,
+                           pwd: str,
+                           header: dict[str, Any] = None) -> dict[str, Any]:
     """
-    Issue a *DELETE* request to the given *url*, and return the response received.
+    Add to *header* the HTTP Basic Authorization snippet.
 
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
+    If *header* is not provided, a new *dict* is created.
+    For convenience, the modified, or newly created, *dict* is returned.
 
-    :param errors: incidental error messages
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
-    :return: the response to the *DELETE* operation, or *None* if an error ocurred
-    """
-    return http_rest(errors=errors,
-                     method=HttpMethod.DELETE,
-                     url=url,
-                     headers=headers,
-                     params=params,
-                     data=data,
-                     json=json,
-                     timeout=timeout,
-                     logger=logger)
-
-
-def http_get(errors: list[str] | None,
-             url: str,
-             headers: dict[str, str] = None,
-             params: dict[str, Any] = None,
-             data: dict[str, Any] = None,
-             json: dict[str, Any] = None,
-             timeout: float | None = HttpTimeout.GET.value,
-             logger: Logger = None) -> Response:
-    """
-    Issue a *GET* request to the given *url*, and return the response received.
-
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
-
-    :param errors: incidental error messages
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
-    :param logger: optional logger
-    :return: the response to the *GET* operation, or *None* if an error ocurred
-    """
-    return http_rest(errors=errors,
-                     method=HttpMethod.GET,
-                     url=url,
-                     headers=headers,
-                     params=params,
-                     data=data,
-                     json=json,
-                     timeout=timeout,
-                     logger=logger)
-
-
-def http_head(errors: list[str] | None,
-              url: str,
-              headers: dict[str, str] = None,
-              params: dict[str, Any] = None,
-              data: dict[str, Any] = None,
-              json: dict[str, Any] = None,
-              timeout: float | None = HttpTimeout.HEAD.value,
-              logger: Logger = None) -> Response:
-    """
-    Issue a *HEAD* request to the given *url*, and return the response received.
-
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
-
-    :param errors: incidental error messages
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
-    :param logger: optional logger
-    :return: the response to the *HEAD* operation, or *None* if an error ocurred
-    """
-    return http_rest(errors=errors,
-                     method=HttpMethod.HEAD,
-                     url=url,
-                     headers=headers,
-                     params=params,
-                     data=data,
-                     json=json,
-                     timeout=timeout,
-                     logger=logger)
-
-
-def http_patch(errors: list[str] | None,
-               url: str,
-               headers: dict[str, str] = None,
-               params: dict[str, Any] = None,
-               data: dict[str, Any] = None,
-               json: dict[str, Any] = None,
-               timeout: float | None = HttpTimeout.PATCH.value,
-               logger: Logger = None) -> Response:
-    """
-    Issue a *PATCH* request to the given *url*, and return the response received.
-
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
-
-    :param errors: incidental error messages
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
-    :return: the response to the *PATCH* operation, or *None* if an error ocurred
-    """
-    return http_rest(errors=errors,
-                     method=HttpMethod.PATCH,
-                     url=url,
-                     headers=headers,
-                     params=params,
-                     data=data,
-                     json=json,
-                     timeout=timeout,
-                     logger=logger)
-
-
-def http_post(errors: list[str] | None,
-              url: str,
-              headers: dict[str, str] = None,
-              params: dict[str, Any] = None,
-              data: dict[str, Any] = None,
-              json: dict[str, Any] = None,
-              files: (dict[str, bytes | BinaryIO] |
-                      dict[str, tuple[str, bytes | BinaryIO]] |
-                      dict[str, tuple[str, bytes | BinaryIO, str]] |
-                      dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
-              timeout: float | None = HttpTimeout.POST.value,
-              logger: Logger = None) -> Response:
-    """
-    Issue a *POST* request to the given *url*, and return the response received.
-
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
-
-    To send multipart-encoded files, the optional *files* parameter is used, formatted as
-    a *dict* holding pairs of *name* and:
-      - a *file-content*, or
-      - a *tuple* holding *file-name, file-content*, or
-      - a *tuple* holding *file-name, file-content, content-type*, or
-      - a *tuple* holding *file-name, file-content, content-type, custom-headers*
-    These parameter elements are:
-      - *file-name*: the name of the file
-      _ *file-content*: the file contents, or a pointer obtained from *Path.open()* or *BytesIO*
-      - *content-type*: the mimetype of the file
-      - *custom-headers*: a *dict* containing additional headers for the file
-
-    :param errors: incidental error messages
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param files: optionally, one or more files to send
-    :param timeout: request timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
-    :return: the response to the *POST* operation, or *None* if an error ocurred
-    """
-    return http_rest(errors=errors,
-                     method=HttpMethod.POST,
-                     url=url,
-                     headers=headers,
-                     params=params,
-                     data=data,
-                     json=json,
-                     files=files,
-                     timeout=timeout,
-                     logger=logger)
-
-
-def http_put(errors: list[str] | None,
-             url: str,
-             headers: dict[str, str] = None,
-             params: dict[str, Any] = None,
-             data: dict[str, Any] = None,
-             json: dict[str, Any] = None,
-             timeout: float | None = HttpTimeout.PUT.value,
-             logger: Logger = None) -> Response:
-    """
-    Issue a *PUT* request to the given *url*, and return the response received.
-
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
-
-    :param errors: incidental error messages
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
-    :return: the response to the *PUT* operation, or *None* if an error ocurred
-    """
-    return http_rest(errors=errors,
-                     method=HttpMethod.PUT,
-                     url=url,
-                     headers=headers,
-                     params=params,
-                     data=data,
-                     json=json,
-                     timeout=timeout,
-                     logger=logger)
-
-
-def http_rest(errors: list[str],
-              method: HttpMethod,
-              url: str,
-              headers: dict[str, str] = None,
-              params: dict[str, Any] = None,
-              data: dict[str, Any] = None,
-              json: dict[str, Any] = None,
-              files: (dict[str, bytes | BinaryIO] |
-                      dict[str, tuple[str, bytes | BinaryIO]] |
-                      dict[str, tuple[str, bytes | BinaryIO, str]] |
-                      dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
-              timeout: float = None,
-              logger: Logger = None) -> Response:
-    """
-    Issue a *REST* request to the given *url*, and return the response received.
-
-    Optional *Bearer Authorization* data may be provided in *auth*, with the structure:
-    {
-      "scheme": <authorization-scheme> - currently, only "bearer" is accepted
-      "url": <url>                     - the URL for obtaining the JWT token
-      "<claim_i...n>": <jwt-claim>     - optional claims
-    }
-
-    To send multipart-encoded files, the optional *files* parameter is used, formatted as
-    a *dict* holding pairs of *name* and:
-      - a *file-content*, or
-      - a *tuple* holding *file-name, file-content*, or
-      - a *tuple* holding *file-name, file-content, content-type*, or
-      - a *tuple* holding *file-name, file-content, content-type, custom-headers*
-    These parameter elements are:
-      - *file-name*: the name of the file
-      _ *file-content*: the file contents, or a pointer obtained from *Path.open()* or *BytesIO*
-      - *content-type*: the mimetype of the file
-      - *custom-headers*: a *dict* containing additional headers for the file
-     The *files* parameter is considered if *method* is *POST*, and disregarded otherwise.
-
-    :param errors: incidental error messages
-    :param method: the REST method to use (DELETE, GET, HEAD, PATCH, POST or PUT)
-    :param url: the destination URL
-    :param headers: optional headers
-    :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
-    :param json: optional JSON to send in the body of the request
-    :param files: optionally, one or more files to send
-    :param timeout: request timeout, in seconds (defaults to 'None')
-    :param logger: optional logger to log the operation with
-    :return: the response to the *REST* operation, or *None* if an error ocurred
+    :param uname: the username to use
+    :param pwd: the password to use
+    :param header: the optional header to add the Basic Authorization to
+    :return: header with Basic Authorization data
     """
     # initialize the return variable
-    result: Response | None = None
+    result: dict[str, Any] = header if isinstance(header, dict) else {}
 
-    if logger:
-        logger.debug(msg=f"{method} '{url}'")
+    enc_bytes: bytes = b64encode(f"{uname}:{pwd}".encode())
+    result["Authorization"] = f"Basic {enc_bytes.decode()}"
 
-    # adjust the 'files' parameter, converting 'bytes' to a file pointer
-    x_files: Any = None
-    if method == HttpMethod.POST and isinstance(files, dict):
-        # SANITY-CHECK: use a copy of 'files'
-        x_files: dict[str, Any] = files.copy()
-        for key, value in files.items():
-            if isinstance(value, bytes):
-                # 'files' is type 'dict[str, bytes]'
-                x_files[key] = BytesIO(value)
-                x_files[key].seek(0)
-            elif isinstance(value, tuple) and isinstance(value[1], bytes):
-                # 'value' is type 'tuple[str, bytes, ...]'
-                x_files[key] = list(value)
-                x_files[key][1] = BytesIO(value[1])
-                x_files[key][1].seek(0)
-                x_files[key] = tuple(x_files[key])
+    return result
 
-    # send the request
-    err_msg: str | None = None
-    try:
-        # noinspection PyTypeChecker
-        result = requests.request(method=method.value,
-                                  url=url,
-                                  headers=headers,
-                                  params=params,
-                                  data=data,
-                                  json=json,
-                                  files=x_files,
-                                  timeout=timeout)
 
-        # was the request successful ?
-        if result.status_code < 200 or result.status_code >= 300:
-            # no, report the problem
-            err_msg = (f"{method} '{url}': failed, "
-                       f"status {result.status_code}, reason '{result.reason}'")
-        elif logger:
-            # yes, log the result
-            logger.debug(msg=(f"{method} '{url}': "
-                              f"status {result.status_code} "
-                              f"({http_status_name(result.status_code)})"))
-    except Exception as e:
-        # the operation raised an exception
-        err_msg = exc_format(exc=e,
-                             exc_info=sys.exc_info())
-        err_msg = f"{method} '{url}': error, '{err_msg}'"
+def http_bearer_auth_header(token: str | bytes,
+                            header: dict[str, Any] = None) -> dict[str, Any]:
+    """
+    Add to *header* the HTTP Bearer Authorization snippet.
 
-    # is there an error message ?
-    if err_msg:
-        # yes, log and save it
-        if logger:
-            logger.error(msg=err_msg)
-        if isinstance(errors, list):
-            errors.append(err_msg)
+    If *header* is not provided, a new *dict* is created.
+    For convenience, the modified, or newly created, *dict* is returned.
+
+    :param token: the token to use
+    :param header: the optional header to add the Bearer Authorization to
+    :return: header with Basic Authorization data
+    """
+    # initialize the return variable
+    result: dict[str, Any] = header if isinstance(header, dict) else {}
+
+    if isinstance(token, bytes):
+        token = token.decode()
+    result["Authorization"] = f"Bearer {token}"
 
     return result

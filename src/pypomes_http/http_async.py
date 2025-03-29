@@ -7,7 +7,7 @@ from pypomes_core import TIMEZONE_LOCAL
 from typing import Any
 from requests import Response
 
-from .http_pomes import HttpMethod, http_rest
+from .http_methods import HttpMethod, http_rest
 
 
 class HttpAsync(threading.Thread):
