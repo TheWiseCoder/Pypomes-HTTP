@@ -4,6 +4,7 @@ import threading
 from datetime import datetime
 from logging import Logger
 from pypomes_core import TIMEZONE_LOCAL
+from pypomes_logging import PYPOMES_LOGGER
 from typing import Any
 from requests import Response
 
@@ -29,7 +30,7 @@ class HttpAsync(threading.Thread):
                  data: dict[str, Any] = None,
                  json: dict[str, Any] = None,
                  timeout: float = None,
-                 logger: Logger = None) -> None:
+                 logger: Logger = PYPOMES_LOGGER) -> None:
         """
         Initiate the asychronous invocation of the *REST* service.
 

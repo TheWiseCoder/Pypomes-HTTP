@@ -33,9 +33,9 @@ def http_get_parameter(request: Request,
     Obtain the *request*'s input parameter named *param_name*.
 
     The following are cumulatively attempted, in the sequence defined by *sources*, defaulting to:
-        1. key/value pairs in a *JSON* structure in the request's body
-        2. parameters in the URL's query string
-        3. data elements in a HTML form
+        1. *body*: key/value pairs in a *JSON* structure in the request's body
+        2. *query*: parameters in the URL's query string
+        3. *form*: data elements in a HTML form
 
     :param request: the Request object
     :param sources: the sequence of sources to inspect (defaults to *['body', 'query', 'form']*)
@@ -76,9 +76,9 @@ def http_get_parameters(request: Request,
     Obtain the *request*'s input parameters.
 
     The following are cumulatively attempted, in the sequence defined by *sources*, defaulting to:
-        1. key/value pairs in a *JSON* structure in the request's body
-        2. parameters in the URL's query string
-        3. elements in a HTML form
+        1. *body*: key/value pairs in a *JSON* structure in the request's body
+        2. *query*: parameters in the URL's query string
+        3. *form*: data elements in a HTML form
 
     :param request: the Request object
     :param sources: the sequence of sources to inspect (defaults to *['body', 'query', 'form']*)
