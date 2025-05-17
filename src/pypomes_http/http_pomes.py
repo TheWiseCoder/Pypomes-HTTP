@@ -28,79 +28,59 @@ def http_retrieve_parameters(url: str) -> dict[str, str]:
 
 def http_get_parameter(request: Request,
                        param: str,
-                       sources: list[str] = None) -> Any:
+                       sources: tuple[str, str, str] = ("body", "form", "query")) -> Any:
     """
-    Obtain the *request*'s input parameter named *param_name*.
+    Obtain the *request*'s input parameter named *param*.
 
-    The following are cumulatively attempted, in the sequence defined by *sources*, defaulting to:
-        1. *body*: key/value pairs in a *JSON* structure in the request's body
-        2. *query*: parameters in the URL's query string
-        3. *form*: data elements in a HTML form
+    The following origins are inspected, in the sequence defined by *sources*, defaulting to:
+      - *body*: key/value pairs in a *JSON* structure in the request's body
+      - *form*: data elements in a HTML form
+      - *query*: parameters in the URL's query string
 
-    :param request: the Request object
-    :param sources: the sequence of sources to inspect (defaults to *['body', 'query', 'form']*)
+    The first occurrence of *param* found is returned. If *sources* is provided, only the
+    origins specified therein (*body*, *form*, and *query*) are inspected.
+
+    :param request: the *Request* object
+    :param sources: the sequence of origins to inspect (defaults to *['body', 'form', 'query']*)
     :param param: name of parameter to retrieve
     :return: the parameter's value, or *None* if not found
     """
-    # initialize the return variable
-    result: Any = None
-
-    # establish the default sequence
-    sources = sources or ["body", "query", "form"]
-
-    for source in reversed(sources):
-        # attempt to retrieve the JSON data in body
-        params: dict[str, Any] | None = None
-        match source:
-            case "query":
-                # obtain parameters in URL query
-                params = request.values
-            case "body":
-                # obtain parameter in the JSON data
-                with contextlib.suppress(Exception):
-                    params = request.get_json()
-            case "form":
-                # obtain parameters in form
-                params = request.form
-        if params:
-            result = params.get(param)
-            if result:
-                break
-
-    return result
+    params: dict[str, Any] = http_get_parameters(request=request,
+                                                 sources=sources)
+    return (params or {}).get(param)
 
 
 def http_get_parameters(request: Request,
-                        sources: list[str] = None) -> dict[str, Any]:
+                        sources: tuple[str, str, str] = ("body", "form", "query")) -> Any:
     """
     Obtain the *request*'s input parameters.
 
-    The following are cumulatively attempted, in the sequence defined by *sources*, defaulting to:
-        1. *body*: key/value pairs in a *JSON* structure in the request's body
-        2. *query*: parameters in the URL's query string
-        3. *form*: data elements in a HTML form
+    The following origins are inspected, in the sequence defined by *sources*, defaulting to:
+      - *body*: key/value pairs in a *JSON* structure in the request's body
+      - *form*: data elements in a HTML form
+      - *query*: parameters in the URL's query string
 
-    :param request: the Request object
-    :param sources: the sequence of sources to inspect (defaults to *['body', 'query', 'form']*)
-    :return: *dict* containing the input parameters (empty, if no input data exists)
+    The first occurrence of each parameter found is returned. If *sources* is provided, only the
+    origins specified therein (*body*, *form*, and *query*) are inspected.
+
+    :param request: the *Request* object
+    :param sources: the sequence of origins to inspect (defaults to *['body', 'form', 'query']*)
+    :return: *dict* containing the input parameters (empty *dict*, if no input data exists)
     """
     # initialize the return variable
     result: dict[str, Any] = {}
 
-    # establish the default sequence
-    sources = sources or ["body", "query", "form"]
-
-    for source in reversed(sources):
-        # attempt to retrieve the JSON data in body
+    for source in reversed(sources or []):
         match source:
             case "query":
-                # obtain parameters in URL query
+                # retrieve parameters from URL query
                 result.update(request.values)
             case "body":
+                # retrieve parameters from JSON data in body
                 with contextlib.suppress(Exception):
                     result.update(request.get_json())
             case "form":
-                # obtain parameters in form
+                # obtain parameters from form
                 result.update(request.form)
 
     return result

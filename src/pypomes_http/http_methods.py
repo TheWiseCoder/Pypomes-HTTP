@@ -4,7 +4,6 @@ from enum import IntEnum, StrEnum
 from logging import Logger
 from io import BytesIO
 from pypomes_core import APP_PREFIX, env_get_int, exc_format
-from pypomes_logging import PYPOMES_LOGGER
 from requests import Response
 from typing import Any, BinaryIO
 
@@ -46,7 +45,7 @@ def http_delete(errors: list[str] | None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
                 timeout: float | None = HttpTimeout.DELETE,
-                logger: Logger = PYPOMES_LOGGER) -> Response:
+                logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
 
@@ -78,7 +77,7 @@ def http_get(errors: list[str] | None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              timeout: float | None = HttpTimeout.GET,
-             logger: Logger = PYPOMES_LOGGER) -> Response:
+             logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
 
@@ -110,7 +109,7 @@ def http_head(errors: list[str] | None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               timeout: float | None = HttpTimeout.HEAD,
-              logger: Logger = PYPOMES_LOGGER) -> Response:
+              logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
 
@@ -142,7 +141,7 @@ def http_patch(errors: list[str] | None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
                timeout: float | None = HttpTimeout.PATCH,
-               logger: Logger = PYPOMES_LOGGER) -> Response:
+               logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
 
@@ -178,7 +177,7 @@ def http_post(errors: list[str] | None,
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
               timeout: float | None = HttpTimeout.POST,
-              logger: Logger = PYPOMES_LOGGER) -> Response:
+              logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
 
@@ -224,7 +223,7 @@ def http_put(errors: list[str] | None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              timeout: float | None = HttpTimeout.PUT,
-             logger: Logger = PYPOMES_LOGGER) -> Response:
+             logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
 
@@ -261,7 +260,7 @@ def http_rest(errors: list[str],
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
               timeout: float = None,
-              logger: Logger = PYPOMES_LOGGER) -> Response:
+              logger: Logger = None) -> Response:
     """
     Issue a *REST* request to the given *url*, and return the response received.
 
