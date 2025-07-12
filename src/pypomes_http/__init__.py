@@ -4,11 +4,13 @@ from .http_methods import (
     http_delete, http_get, http_head, http_patch, http_post, http_put
 )
 from .http_pomes import (
-    http_retrieve_parameters,
-    http_get_parameter, http_get_parameters,
-    http_basic_auth_header, http_bearer_auth_header
+    http_retrieve_parameters, http_get_parameter, http_get_parameters,
+    http_basic_auth_header, http_bearer_auth_header,
+    http_get_file, http_build_response
 )
-from .http_statuses import HttpStatus, http_status_description
+from .http_statuses import (
+    HttpStatus, http_status_description
+)
 
 __all__ = [
     # http_async
@@ -17,11 +19,11 @@ __all__ = [
     "HttpMethod", "HttpTimeout", "http_rest",
     "http_delete", "http_get", "http_head", "http_patch", "http_post", "http_put",
     # http_pomes
-    "http_status_description",
     "http_retrieve_parameters", "http_get_parameter", "http_get_parameters",
     "http_basic_auth_header", "http_bearer_auth_header",
+    "http_get_file", "http_build_response",
     # http_statuses
-    "HttpStatus"
+    "HttpStatus", "http_status_description"
 ]
 
 from importlib.metadata import version

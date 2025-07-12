@@ -1,7 +1,9 @@
-import contextlib
+
 from base64 import b64encode
-from flask import Request
+from flask import Request, Response, jsonify
+from pypomes_core import validate_format_errors
 from typing import Any
+from werkzeug.datastructures import FileStorage
 
 
 def http_retrieve_parameters(url: str) -> dict[str, str]:
@@ -28,7 +30,7 @@ def http_retrieve_parameters(url: str) -> dict[str, str]:
 
 def http_get_parameter(request: Request,
                        param: str,
-                       sources: tuple[str, str, str] = ("body", "form", "query")) -> Any:
+                       sources: tuple = None) -> Any:
     """
     Obtain the *request*'s input parameter named *param*.
 
@@ -51,7 +53,7 @@ def http_get_parameter(request: Request,
 
 
 def http_get_parameters(request: Request,
-                        sources: tuple[str, str, str] = ("body", "form", "query")) -> Any:
+                        sources: tuple = None) -> Any:
     """
     Obtain the *request*'s input parameters.
 
@@ -70,14 +72,14 @@ def http_get_parameters(request: Request,
     # initialize the return variable
     result: dict[str, Any] = {}
 
-    for source in reversed(sources or []):
+    for source in reversed(sources or ("body", "form", "query")):
         match source:
             case "query":
                 # retrieve parameters from URL query
                 result.update(request.values)
             case "body":
                 # retrieve parameters from JSON data in body
-                with contextlib.suppress(Exception):
+                if request.is_json:
                     result.update(request.get_json())
             case "form":
                 # obtain parameters from form
@@ -101,7 +103,7 @@ def http_basic_auth_header(uname: str,
     :return: header with Basic Authorization data
     """
     # initialize the return variable
-    result: dict[str, Any] = header if isinstance(header, dict) else {}
+    result: dict[str, Any] = header or {}
 
     enc_bytes: bytes = b64encode(f"{uname}:{pwd}".encode())
     result["Authorization"] = f"Basic {enc_bytes.decode()}"
@@ -122,10 +124,71 @@ def http_bearer_auth_header(token: str | bytes,
     :return: header with Basic Authorization data
     """
     # initialize the return variable
-    result: dict[str, Any] = header if isinstance(header, dict) else {}
+    result: dict[str, Any] = header or {}
 
     if isinstance(token, bytes):
         token = token.decode()
     result["Authorization"] = f"Bearer {token}"
+
+    return result
+
+
+def http_get_file(request: Request,
+                  file_name: str = None,
+                  file_seq: int = 0) -> bytes:
+    """
+    Retrieve and return the contents of the file returned in the response to a request.
+
+    The file may be referred to by its name (*file_name*), or if no name is specified,
+    by its sequence number (*file_seq*).
+
+    :param request: the request
+    :param file_name: optional name for the file
+    :param file_seq: sequence number for the file, defaults to the first file
+    :return: the contents retrieved from the file
+    """
+    # inicialize the return variable
+    result: bytes | None = None
+
+    count: int = len(request.files) \
+        if hasattr(request, "files") and request.files else 0
+    # has a file been found ?
+    if count > 0:
+        # yes, retrieve it
+        file: FileStorage | None = None
+        if isinstance(file_name, str):
+            file = request.files.get(file_name)
+        elif (isinstance(file_seq, int) and
+              len(request.files) > file_seq >= 0):
+            file_in: str = list(request.files)[file_seq]
+            file = request.files[file_in]
+
+        if file:
+            result: bytes = file.stream.read()
+
+    return result
+
+
+def http_build_response(errors: list[str],
+                        reply: dict[str, Any]) -> Response:
+    """
+    Build a *Response* object based on the given *errors* list and the set of key/value pairs in *reply*.
+
+    :param errors: the reference errors
+    :param reply: the key/value pairs to add to the response as JSON string
+    :return: the appropriate *Response* object
+    """
+    # declare the return variable
+    result: Response
+
+    if len(errors) == 0:
+        # 'reply' might be 'None'
+        result = jsonify(reply)
+    else:
+        reply_err: dict = {"errors": validate_format_errors(errors=errors)}
+        if isinstance(reply, dict):
+            reply_err.update(reply)
+        result = jsonify(reply_err)
+        result.status_code = 400
 
     return result

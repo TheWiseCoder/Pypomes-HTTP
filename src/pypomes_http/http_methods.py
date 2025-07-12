@@ -57,7 +57,7 @@ def http_delete(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the *DELETE* operation, or *None* if an error ocurred
+    :return: the response to the *DELETE* operation, or *None* if an exception was raised
     """
     return http_rest(errors=errors,
                      method=HttpMethod.DELETE,
@@ -89,7 +89,7 @@ def http_get(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
     :param logger: optional logger
-    :return: the response to the *GET* operation, or *None* if an error ocurred
+    :return: the response to the *GET* operation, or *None* if an exception was raised
     """
     return http_rest(errors=errors,
                      method=HttpMethod.GET,
@@ -121,7 +121,7 @@ def http_head(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
     :param logger: optional logger
-    :return: the response to the *HEAD* operation, or *None* if an error ocurred
+    :return: the response to the *HEAD* operation, or *None* if an exception was raised
     """
     return http_rest(errors=errors,
                      method=HttpMethod.HEAD,
@@ -153,7 +153,7 @@ def http_patch(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the *PATCH* operation, or *None* if an error ocurred
+    :return: the response to the *PATCH* operation, or *None* if an exception was raised
     """
     return http_rest(errors=errors,
                      method=HttpMethod.PATCH,
@@ -202,7 +202,7 @@ def http_post(errors: list[str] | None,
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the *POST* operation, or *None* if an error ocurred
+    :return: the response to the *POST* operation, or *None* if an exception was raised
     """
     return http_rest(errors=errors,
                      method=HttpMethod.POST,
@@ -235,7 +235,7 @@ def http_put(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
     :param logger: optional logger to log the operation with
-    :return: the response to the *PUT* operation, or *None* if an error ocurred
+    :return: the response to the *PUT* operation, or *None* if an exception was raised
     """
     return http_rest(errors=errors,
                      method=HttpMethod.PUT,
@@ -287,7 +287,7 @@ def http_rest(errors: list[str],
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to 'None')
     :param logger: optional logger to log the operation with
-    :return: the response to the *REST* operation, or *None* if an error ocurred
+    :return: the response to the *REST* operation, or *None* if an exception was raised
     """
     # initialize the return variable
     result: Response | None = None
@@ -325,6 +325,7 @@ def http_rest(errors: list[str],
                                   timeout=timeout)
 
         # was the request successful ?
+        # noinspection Ruff
         if result.status_code < 200 or result.status_code >= 300:
             # no, report the problem
             err_msg = (f"{method} '{url}': failed, "

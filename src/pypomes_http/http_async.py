@@ -95,6 +95,8 @@ class HttpAsync(threading.Thread):
         if self.jwt_provider:
             jwt_token: str = self.jwt_provider(self.job_name)
             if jwt_token:
+                if not self.headers:
+                    self.headers = {}
                 self.headers["Authorization"] = f"Bearer {jwt_token}"
 
         # invoke the service
