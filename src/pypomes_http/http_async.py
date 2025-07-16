@@ -1,11 +1,12 @@
 import base64
 import json
 import threading
+from collections.abc import Callable
 from datetime import datetime
 from logging import Logger
 from pypomes_core import TIMEZONE_LOCAL
-from typing import Any
 from requests import Response
+from typing import Any
 
 from .http_methods import HttpMethod, http_rest
 
@@ -22,7 +23,7 @@ class HttpAsync(threading.Thread):
                  job_url: str,
                  job_method: HttpMethod,
                  jwt_provider: callable = None,
-                 callback: callable = None,
+                 callback: Callable[[dict[str, Any]], None] = None,
                  report_content: bool = False,
                  headers: dict[str, Any] = None,
                  params: dict[str, Any] = None,
@@ -61,7 +62,7 @@ class HttpAsync(threading.Thread):
         self.job_name: str = job_name
         self.job_url: str = job_url
         self.job_method: HttpMethod = job_method
-        self.callback: callable = callback
+        self.callback: Callable[[dict[str, Any]], None] = callback
         self.jwt_provider: callable = jwt_provider
         self.report_content: bool = report_content
         self.headers: dict[str, Any] = headers
@@ -116,25 +117,22 @@ class HttpAsync(threading.Thread):
         if self.logger:
             self.logger.info(msg=f"Job '{self.job_name}' finished")
 
-        # has a callback been specified ?
+        # foward the results of the service invocation
         if self.callback:
-            # yes, send it the results of the service invocation
             reply: dict[str, Any] = {
                 "job-name": self.job_name,
                 "job-url": self.job_url,
                 "start": self.start_timestamp,
                 "finish": self.finish_timestamp,
             }
-            # errors ?
+            # report the errors messages
             if errors:
-                # yes, report the errors messages
                 reply["errors"] = json.dumps(obj=errors,
                                              ensure_ascii=False)
-            # return the response's content, if appropriate
+            # report the response's content
             if (self.report_content and
                     response is not None and
                     hasattr(response, "content") and
                     isinstance(response.content, bytes)):
                 reply["content"] = base64.b64encode(s=response.content).decode()
-            # send message to recipient
             self.callback(reply)
