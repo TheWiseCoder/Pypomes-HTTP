@@ -4,7 +4,7 @@ import threading
 from collections.abc import Callable
 from datetime import datetime
 from logging import Logger
-from pypomes_core import TIMEZONE_LOCAL
+from pypomes_core import TZ_LOCAL
 from requests import Response
 from typing import Any
 
@@ -90,7 +90,7 @@ class HttpAsync(threading.Thread):
             self.logger.info(msg=f"Job '{self.job_name}' started")
 
         # obtain the start timestamp
-        self.start_timestamp = datetime.now(tz=TIMEZONE_LOCAL).isoformat()
+        self.start_timestamp = datetime.now(tz=TZ_LOCAL).isoformat()
 
         # obtain the JWT token
         if self.jwt_provider:
@@ -111,7 +111,7 @@ class HttpAsync(threading.Thread):
                                        timeout=self.timeout,
                                        logger=self.logger)
         # obtain the finish timestamp
-        self.finish_timestamp = datetime.now(tz=TIMEZONE_LOCAL).isoformat()
+        self.finish_timestamp = datetime.now(tz=TZ_LOCAL).isoformat()
 
         # log the opertion finish
         if self.logger:

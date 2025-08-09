@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage
 
 def http_retrieve_parameters(url: str) -> dict[str, str]:
     """
-    Retrieve and return the parameters in the query string of *url*.
+    Retrieve the parameters in the query string of *url*.
 
     :param url: the url to retrieve parameters from
     :return: the extracted parameters, or an empty *dict* if no parameters were found
@@ -137,7 +137,7 @@ def http_get_file(request: Request,
                   file_name: str = None,
                   file_seq: int = 0) -> bytes:
     """
-    Retrieve and return the contents of the file returned in the response to a request.
+    Retrieve the contents of the file returned in the response to a request.
 
     The file may be referred to by its name (*file_name*), or if no name is specified,
     by its sequence number (*file_seq*).
