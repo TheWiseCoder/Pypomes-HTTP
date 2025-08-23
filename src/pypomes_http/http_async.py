@@ -101,14 +101,14 @@ class HttpAsync(threading.Thread):
                 self.headers["Authorization"] = f"Bearer {jwt_token}"
 
         # invoke the service
-        response: Response = http_rest(errors=errors,
-                                       method=self.job_method,
+        response: Response = http_rest(method=self.job_method,
                                        url=self.job_url,
                                        headers=self.headers,
                                        params=self.params,
                                        data=self.data,
                                        json=self.json,
                                        timeout=self.timeout,
+                                       errors=errors,
                                        logger=self.logger)
         # obtain the finish timestamp
         self.finish_timestamp = datetime.now(tz=TZ_LOCAL).isoformat()

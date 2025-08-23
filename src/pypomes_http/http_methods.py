@@ -38,136 +38,135 @@ class HttpTimeout(IntEnum):
                       def_value=300)
 
 
-def http_delete(errors: list[str] | None,
-                url: str,
+def http_delete(url: str,
                 headers: dict[str, str] = None,
                 params: dict[str, Any] = None,
                 data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
                 timeout: float | None = HttpTimeout.DELETE,
+                errors: list[str] = None,
                 logger: Logger = None) -> Response:
     """
     Issue a *DELETE* request to the given *url*, and return the response received.
 
-    :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
+    :param errors: incidental error messages
+    :param logger: optional logger
     :return: the response to the *DELETE* operation, or *None* if an exception was raised
     """
-    return http_rest(errors=errors,
-                     method=HttpMethod.DELETE,
+    return http_rest(method=HttpMethod.DELETE,
                      url=url,
                      headers=headers,
                      params=params,
                      data=data,
                      json=json,
                      timeout=timeout,
+                     errors=errors,
                      logger=logger)
 
 
-def http_get(errors: list[str] | None,
-             url: str,
+def http_get(url: str,
              headers: dict[str, str] = None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              timeout: float | None = HttpTimeout.GET,
+             errors: list[str] = None,
              logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
 
-    :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
+    :param errors: incidental error messages
     :param logger: optional logger
     :return: the response to the *GET* operation, or *None* if an exception was raised
     """
-    return http_rest(errors=errors,
-                     method=HttpMethod.GET,
+    return http_rest(method=HttpMethod.GET,
                      url=url,
                      headers=headers,
                      params=params,
                      data=data,
                      json=json,
                      timeout=timeout,
+                     errors=errors,
                      logger=logger)
 
 
-def http_head(errors: list[str] | None,
-              url: str,
+def http_head(url: str,
               headers: dict[str, str] = None,
               params: dict[str, Any] = None,
               data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               timeout: float | None = HttpTimeout.HEAD,
+              errors: list[str] = None,
               logger: Logger = None) -> Response:
     """
     Issue a *HEAD* request to the given *url*, and return the response received.
 
-    :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
+    :param errors: incidental error messages
     :param logger: optional logger
     :return: the response to the *HEAD* operation, or *None* if an exception was raised
     """
-    return http_rest(errors=errors,
-                     method=HttpMethod.HEAD,
+    return http_rest(method=HttpMethod.HEAD,
                      url=url,
                      headers=headers,
                      params=params,
                      data=data,
                      json=json,
                      timeout=timeout,
+                     errors=errors,
                      logger=logger)
 
 
-def http_patch(errors: list[str] | None,
-               url: str,
+def http_patch(url: str,
                headers: dict[str, str] = None,
                params: dict[str, Any] = None,
                data: dict[str, Any] = None,
                json: dict[str, Any] = None,
                timeout: float | None = HttpTimeout.PATCH,
+               errors: list[str] = None,
                logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
 
-    :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
+    :param errors: incidental error messages
+    :param logger: optional logger
     :return: the response to the *PATCH* operation, or *None* if an exception was raised
     """
-    return http_rest(errors=errors,
-                     method=HttpMethod.PATCH,
+    return http_rest(method=HttpMethod.PATCH,
                      url=url,
                      headers=headers,
                      params=params,
                      data=data,
                      json=json,
                      timeout=timeout,
+                     errors=errors,
                      logger=logger)
 
 
-def http_post(errors: list[str] | None,
-              url: str,
+def http_post(url: str,
               headers: dict[str, str] = None,
               params: dict[str, Any] = None,
               data: dict[str, Any] = None,
@@ -177,6 +176,7 @@ def http_post(errors: list[str] | None,
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
               timeout: float | None = HttpTimeout.POST,
+              errors: list[str] = None,
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
@@ -193,7 +193,6 @@ def http_post(errors: list[str] | None,
       - *content-type*: the mimetype of the file
       - *custom-headers*: a *dict* containing additional headers for the file
 
-    :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
@@ -201,11 +200,11 @@ def http_post(errors: list[str] | None,
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
+    :param errors: incidental error messages
+    :param logger: optional logger
     :return: the response to the *POST* operation, or *None* if an exception was raised
     """
-    return http_rest(errors=errors,
-                     method=HttpMethod.POST,
+    return http_rest(method=HttpMethod.POST,
                      url=url,
                      headers=headers,
                      params=params,
@@ -213,43 +212,43 @@ def http_post(errors: list[str] | None,
                      json=json,
                      files=files,
                      timeout=timeout,
+                     errors=errors,
                      logger=logger)
 
 
-def http_put(errors: list[str] | None,
-             url: str,
+def http_put(url: str,
              headers: dict[str, str] = None,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              timeout: float | None = HttpTimeout.PUT,
+             errors: list[str] = None,
              logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
 
-    :param errors: incidental error messages
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
-    :param logger: optional logger to log the operation with
+    :param errors: incidental error messages
+    :param logger: optional logger
     :return: the response to the *PUT* operation, or *None* if an exception was raised
     """
-    return http_rest(errors=errors,
-                     method=HttpMethod.PUT,
+    return http_rest(method=HttpMethod.PUT,
                      url=url,
                      headers=headers,
                      params=params,
                      data=data,
                      json=json,
                      timeout=timeout,
+                     errors=errors,
                      logger=logger)
 
 
-def http_rest(errors: list[str],
-              method: HttpMethod,
+def http_rest(method: HttpMethod,
               url: str,
               headers: dict[str, str] = None,
               params: dict[str, Any] = None,
@@ -260,6 +259,7 @@ def http_rest(errors: list[str],
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
               timeout: float = None,
+              errors: list[str] = None,
               logger: Logger = None) -> Response:
     """
     Issue a *REST* request to the given *url*, and return the response received.
@@ -277,7 +277,6 @@ def http_rest(errors: list[str],
       - *custom-headers*: a *dict* containing additional headers for the file
      The *files* parameter is considered if *method* is *POST*, and disregarded otherwise.
 
-    :param errors: incidental error messages
     :param method: the REST method to use (DELETE, GET, HEAD, PATCH, POST or PUT)
     :param url: the destination URL
     :param headers: optional headers
@@ -286,7 +285,8 @@ def http_rest(errors: list[str],
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to 'None')
-    :param logger: optional logger to log the operation with
+    :param errors: incidental error messages
+    :param logger: optional logger
     :return: the response to the *REST* operation, or *None* if an exception was raised
     """
     # initialize the return variable

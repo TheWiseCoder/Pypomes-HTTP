@@ -43,7 +43,7 @@ def http_get_parameter(request: Request,
     origins specified therein (*body*, *form*, and *query*) are inspected.
 
     :param request: the *Request* object
-    :param sources: the sequence of origins to inspect (defaults to *['body', 'form', 'query']*)
+    :param sources: the sequence of origins to inspect (uses *('body', 'form', 'query')*, if not specifed)
     :param param: name of parameter to retrieve
     :return: the parameter's value, or *None* if not found
     """
@@ -66,7 +66,7 @@ def http_get_parameters(request: Request,
     origins specified therein (*body*, *form*, and *query*) are inspected.
 
     :param request: the *Request* object
-    :param sources: the sequence of origins to inspect (defaults to *['body', 'form', 'query']*)
+    :param sources: the sequence of origins to inspect (uses *('body', 'form', 'query')*, if not specifed)
     :return: *dict* containing the input parameters (empty *dict*, if no input data exists)
     """
     # initialize the return variable
@@ -169,26 +169,26 @@ def http_get_file(request: Request,
     return result
 
 
-def http_build_response(errors: list[str],
-                        reply: dict[str, Any]) -> Response:
+def http_build_response(reply: dict[str, Any],
+                        errors: list[str]) -> Response:
     """
     Build a *Response* object based on the given *errors* list and the set of key/value pairs in *reply*.
 
-    :param errors: the reference errors
     :param reply: the key/value pairs to add to the response as JSON string
+    :param errors: the reference errors
     :return: the appropriate *Response* object
     """
     # declare the return variable
     result: Response
 
-    if len(errors) == 0:
-        # 'reply' might be 'None'
-        result = jsonify(reply)
-    else:
+    if errors:
         reply_err: dict = {"errors": validate_format_errors(errors=errors)}
         if isinstance(reply, dict):
             reply_err.update(reply)
         result = jsonify(reply_err)
         result.status_code = 400
+    else:
+        # 'reply' might be 'None'
+        result = jsonify(reply)
 
     return result
