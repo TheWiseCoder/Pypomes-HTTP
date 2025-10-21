@@ -72,31 +72,20 @@ def http_get_parameters(request: Request,
     # initialize the return variable
     result: dict[str, Any] = {}
 
-    # HAZARD:
-    #   - a 'dict.update(<dict>)' operation may cause an internal server error if '<dict>' is very large
-    #   - thus, it is wise to use a straight assignment 'dict = <dict>' whenever possible
+    # HAZARD: must update 'result', rather than assign to it
     for source in reversed(sources or ("body", "form", "query")):
         match source:
             case "query":
-                # retrieve parameters from URL query
-                if result:
+                if request.values:
                     result.update(request.values)
-                else:
-                    result = request.values
             case "body":
                 # retrieve parameters from JSON data in body
                 if request.is_json:
-                    if result:
-                        # may cause an internal server error if the JSON is very large
-                        result.update(request.get_json())
-                    else:
-                        result = request.get_json()
+                    result.update(request.get_json())
             case "form":
                 # obtain parameters from form
-                if result:
+                if request.form:
                     result.update(request.form)
-                else:
-                    result = request.form
 
     return result
 
