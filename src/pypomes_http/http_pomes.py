@@ -77,11 +77,11 @@ def http_get_parameters(request: Request,
     for source in reversed(sources or ("body", "form", "query")):
         match source:
             case "query":
-                if request.values:
+                if request.args:
                     if result:
-                        result.update(request.values)
+                        result.update(request.args)
                     else:
-                        result = request.values.copy()
+                        result = request.args.copy()
             case "body":
                 # retrieve parameters from JSON data in body
                 if request.is_json:
