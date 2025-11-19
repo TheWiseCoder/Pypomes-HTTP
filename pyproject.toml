@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "Flask>=3.1.2",
-    "pypomes_core>=2.8.6",
+    "pypomes_core>=2.8.7",
     "requests>=2.32.5"
 ]
 

@@ -22,7 +22,7 @@ class HttpAsync(threading.Thread):
                  job_name: str,
                  job_url: str,
                  job_method: HttpMethod,
-                 jwt_provider: callable = None,
+                 jwt_provider: Callable = None,
                  callback: Callable[[dict[str, Any]], None] = None,
                  report_content: bool = False,
                  headers: dict[str, Any] = None,
@@ -63,7 +63,7 @@ class HttpAsync(threading.Thread):
         self.job_url: str = job_url
         self.job_method: HttpMethod = job_method
         self.callback: Callable[[dict[str, Any]], None] = callback
-        self.jwt_provider: callable = jwt_provider
+        self.jwt_provider: Callable = jwt_provider
         self.report_content: bool = report_content
         self.headers: dict[str, Any] = headers
         self.params: dict[str, Any] = params
