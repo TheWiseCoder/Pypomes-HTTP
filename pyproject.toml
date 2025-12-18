@@ -1,12 +1,12 @@
 [build-system]
 requires = [
-    "hatchling>=1.27.0"
+    "hatchling>=1.28.0"
 ]
 build-backend = "hatchling.build"
 
 [project]
 name = "pypomes_http"
-version = "0.8.0"
+version = "0.8.1"
 authors = [
   { name="GT Nunes", email="wisecoder01@gmail.com" }
 ]
@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "Flask>=3.1.2",
-    "pypomes_core>=2.8.7",
+    "pypomes_core>=2.9.2",
     "requests>=2.32.5"
 ]
 

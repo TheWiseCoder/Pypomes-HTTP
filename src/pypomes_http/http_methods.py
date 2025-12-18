@@ -314,6 +314,8 @@ def http_rest(method: HttpMethod,
 
     # send the request
     err_msg: str | None = None
+    if logger:
+        logger.debug(f"{method} {url}")
     try:
         result = requests.request(method=method,
                                   url=url,
@@ -324,26 +326,24 @@ def http_rest(method: HttpMethod,
                                   files=x_files,
                                   timeout=timeout)
 
-        # was the request successful ?
-        # noinspection Ruff
-        if result.status_code < 200 or result.status_code >= 300:
+        # truth value of 'result': 'True' if 'result.status_code < 400'
+        if not result:
             # no, report the problem
-            err_msg = (f"{method} '{url}': failed, "
+            err_msg = (f"{method} {url} failure, "
                        f"status {result.status_code}, reason '{result.reason}'")
         elif logger:
             # yes, log the result
             from .http_statuses import HttpStatus
             http_status: HttpStatus = HttpStatus(result.status_code)
-            logger.debug(msg=f"{method} '{url}': status {http_status} ({http_status.name})")
+            logger.debug(msg=f"{method} {url} success, status {http_status} ({http_status.name})")
     except Exception as e:
         # the operation raised an exception
         err_msg = exc_format(exc=e,
                              exc_info=sys.exc_info())
-        err_msg = f"{method} '{url}': error, '{err_msg}'"
+        err_msg = f"{method} {url} error, '{err_msg}'"
 
-    # is there an error message ?
+    # log and save the error
     if err_msg:
-        # yes, log and save it
         if logger:
             logger.error(msg=err_msg)
         if isinstance(errors, list):

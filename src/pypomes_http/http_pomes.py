@@ -104,10 +104,10 @@ def http_basic_auth_header(uname: str,
                            pwd: str,
                            header: dict[str, Any] = None) -> dict[str, Any]:
     """
-    Add to *header* the HTTP Basic Authorization snippet.
+    Add the HTTP Basic Authorization snippet to *header*.
 
     If *header* is not provided, a new *dict* is created.
-    For convenience, the modified, or newly created, *dict* is returned.
+    For convenience, the modified, or newly created, header is returned.
 
     :param uname: the username to use
     :param pwd: the password to use
@@ -129,7 +129,7 @@ def http_bearer_auth_header(token: str | bytes,
     Add to *header* the HTTP Bearer Authorization snippet.
 
     If *header* is not provided, a new *dict* is created.
-    For convenience, the modified, or newly created, *dict* is returned.
+    For convenience, the modified, or newly created, header is returned.
 
     :param token: the token to use
     :param header: the optional header to add the Bearer Authorization to
@@ -159,7 +159,7 @@ def http_get_file(request: Request,
     :param file_seq: sequence number for the file, defaults to the first file
     :return: the contents retrieved from the file
     """
-    # inicialize the return variable
+    # initialize the return variable
     result: bytes | None = None
 
     count: int = len(request.files) \
