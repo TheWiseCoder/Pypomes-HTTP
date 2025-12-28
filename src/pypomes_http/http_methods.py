@@ -55,7 +55,7 @@ def http_delete(url: str,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *DELETE* operation, or *None* if an exception was raised
     """
@@ -87,7 +87,7 @@ def http_get(url: str,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *GET* operation, or *None* if an exception was raised
     """
@@ -119,7 +119,7 @@ def http_head(url: str,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *HEAD* operation, or *None* if an exception was raised
     """
@@ -151,7 +151,7 @@ def http_patch(url: str,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *PATCH* operation, or *None* if an exception was raised
     """
@@ -200,7 +200,7 @@ def http_post(url: str,
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to HTTP_POST_TIMEOUT - use None to omit)
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *POST* operation, or *None* if an exception was raised
     """
@@ -233,7 +233,7 @@ def http_put(url: str,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *PUT* operation, or *None* if an exception was raised
     """
@@ -285,7 +285,7 @@ def http_rest(method: HttpMethod,
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to 'None')
-    :param errors: incidental error messages
+    :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
     :return: the response to the *REST* operation, or *None* if an exception was raised
     """

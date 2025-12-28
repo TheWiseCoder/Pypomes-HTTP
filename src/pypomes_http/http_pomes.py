@@ -78,24 +78,15 @@ def http_get_parameters(request: Request,
         match source:
             case "query":
                 if request.args:
-                    if result:
-                        result.update(request.args)
-                    else:
-                        result = request.args.copy()
+                    result.update(request.args)
             case "body":
                 # retrieve parameters from JSON data in body
                 if request.is_json:
-                    if result:
-                        result.update(request.get_json())
-                    else:
-                        result = request.get_json().copy()
+                    result.update(request.get_json())
             case "form":
                 # obtain parameters from form
                 if request.form:
-                    if result:
-                        result.update(request.form)
-                    else:
-                        result = request.form.copy()
+                    result.update(request.form)
 
     return result
 
