@@ -221,6 +221,10 @@ def http_put(url: str,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
+             files: (dict[str, bytes | BinaryIO] |
+                     dict[str, tuple[str, bytes | BinaryIO]] |
+                     dict[str, tuple[str, bytes | BinaryIO, str]] |
+                     dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
              timeout: float | None = HttpTimeout.PUT,
              errors: list[str] = None,
              logger: Logger = None) -> Response:
@@ -232,6 +236,7 @@ def http_put(url: str,
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
+    :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to HTTP_PUT_TIMEOUT - use None to omit)
     :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
@@ -243,6 +248,7 @@ def http_put(url: str,
                      params=params,
                      data=data,
                      json=json,
+                     files=files,
                      timeout=timeout,
                      errors=errors,
                      logger=logger)

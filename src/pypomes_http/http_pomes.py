@@ -80,9 +80,12 @@ def http_get_parameters(request: Request,
                 if request.args:
                     result.update(request.args)
             case "body":
-                # retrieve parameters from JSON data in body
+                # attempt to retrieve parameters from JSON data in body
                 if request.is_json:
-                    result.update(request.get_json())
+                    json_input = request.get_json(silent=True)
+                    # JSON might be a list
+                    if isinstance(json_input, dict):
+                        result.update(json_input)
             case "form":
                 # obtain parameters from form
                 if request.form:
@@ -185,7 +188,7 @@ def http_build_response(reply: dict[str, Any],
     result: Response
 
     if errors:
-        reply_err: dict = {"errors": validate_format_errors(errors=errors)}
+        reply_err: dict = {"errors": validate_format_errors(errors)}
         if isinstance(reply, dict):
             reply_err.update(reply)
         result = jsonify(reply_err)
