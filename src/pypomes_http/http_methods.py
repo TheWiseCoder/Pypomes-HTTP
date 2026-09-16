@@ -3,6 +3,7 @@ import sys
 from enum import IntEnum, StrEnum
 from logging import Logger
 from io import BytesIO
+from json import JSONDecodeError, dumps, loads
 from pypomes_core import APP_PREFIX, env_get_int, exc_format
 from requests import Response
 from typing import Any, BinaryIO
@@ -75,17 +76,22 @@ def http_get(url: str,
              params: dict[str, Any] = None,
              data: dict[str, Any] = None,
              json: dict[str, Any] = None,
+             stream: bool = None,
              timeout: float | None = HttpTimeout.GET,
              errors: list[str] = None,
              logger: Logger = None) -> Response:
     """
     Issue a *GET* request to the given *url*, and return the response received.
 
+    To retrieve a file when *stream* is *True*, the returned content must be iterated over
+    (*for chunk in response.iter_content(chunk_size=<size>): {...}*).
+
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
+    :param stream: if *True*, return content in chunks (defaults to download it immediately)
     :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
     :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
@@ -97,6 +103,7 @@ def http_get(url: str,
                      params=params,
                      data=data,
                      json=json,
+                     stream=stream,
                      timeout=timeout,
                      errors=errors,
                      logger=logger)
@@ -264,6 +271,7 @@ def http_rest(method: HttpMethod,
                       dict[str, tuple[str, bytes | BinaryIO]] |
                       dict[str, tuple[str, bytes | BinaryIO, str]] |
                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
+              stream: bool = None,
               timeout: float = None,
               errors: list[str] = None,
               logger: Logger = None) -> Response:
@@ -290,6 +298,7 @@ def http_rest(method: HttpMethod,
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param files: optionally, one or more files to send
+    :param stream: if *True*, return content in chunks (defaults to download it immediately - *GET* only)
     :param timeout: request timeout, in seconds (defaults to 'None')
     :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
@@ -330,6 +339,7 @@ def http_rest(method: HttpMethod,
                                   data=data,
                                   json=json,
                                   files=x_files,
+                                  stream=stream,
                                   timeout=timeout)
 
         # truth value of 'result': 'True' if 'result.status_code < 400'
@@ -337,6 +347,17 @@ def http_rest(method: HttpMethod,
             # no, report the problem
             err_msg = (f"{method} {url} failure, "
                        f"status {result.status_code}, reason '{result.reason}'")
+            if hasattr(result, "text") and result.text:
+                txt: str
+                try:
+                    json_obj: dict[str, Any] = loads(result.text)
+                    txt = dumps(obj=json_obj,
+                                ensure_ascii=False,
+                                indent=2)
+                except JSONDecodeError:
+                    # if 'result.text' is not valid JSON, just strip out the literal backslashes
+                    txt = result.text.replace('\\"', '"').replace("'", '"')
+                err_msg += f", text '{txt}'"
         elif logger:
             # yes, log the result
             from .http_statuses import HttpStatus

@@ -6,7 +6,7 @@ from .http_methods import (
 from .http_pomes import (
     http_retrieve_parameters, http_get_parameter, http_get_parameters,
     http_basic_auth_header, http_bearer_auth_header,
-    http_get_file, http_build_response
+    http_get_file, http_make_response
 )
 from .http_statuses import (
     HttpStatus, http_status_description
@@ -21,7 +21,7 @@ __all__ = [
     # http_pomes
     "http_retrieve_parameters", "http_get_parameter", "http_get_parameters",
     "http_basic_auth_header", "http_bearer_auth_header",
-    "http_get_file", "http_build_response",
+    "http_get_file", "http_make_response",
     # http_statuses
     "HttpStatus", "http_status_description"
 ]

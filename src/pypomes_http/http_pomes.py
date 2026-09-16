@@ -1,7 +1,7 @@
-
+import json
 from base64 import b64encode
-from flask import Request, Response, jsonify
-from pypomes_core import validate_format_errors
+from flask import Request, Response, make_response
+from pypomes_core import Mimetype, validate_format_errors
 from typing import Any
 from werkzeug.datastructures import FileStorage
 
@@ -175,8 +175,8 @@ def http_get_file(request: Request,
     return result
 
 
-def http_build_response(reply: dict[str, Any],
-                        errors: list[str]) -> Response:
+def http_make_response(reply: dict[str, Any],
+                       errors: list[str] | None) -> Response:
     """
     Build a *Response* object based on the given *errors* list and the set of key/value pairs in *reply*.
 
@@ -190,11 +190,17 @@ def http_build_response(reply: dict[str, Any],
     if errors:
         reply_err: dict = {"errors": validate_format_errors(errors)}
         if isinstance(reply, dict):
-            reply_err.update(reply)
-        result = jsonify(reply_err)
-        result.status_code = 400
+            reply.update(reply_err)
+        else:
+            reply = reply_err
+
+    if reply:
+        json_string: str = json.dumps(obj=reply,
+                                      ensure_ascii=False)
+        result = make_response(json_string)
+        result.headers["Content-Type"] = Mimetype.JSON
+        result.status_code = 400 if errors else 200
     else:
-        # 'reply' might be 'None'
-        result = jsonify(reply)
+        result = Response(status=204)
 
     return result
