@@ -1,9 +1,11 @@
 import json
 from base64 import b64encode
 from flask import Request, Response, make_response
-from pypomes_core import Mimetype, validate_format_errors
+from pypomes_core import Mimetype, str_sanitize, validate_format_errors
 from typing import Any
 from werkzeug.datastructures import FileStorage
+
+from .http_statuses import HttpStatus
 
 
 def http_retrieve_parameters(url: str) -> dict[str, str]:
@@ -53,7 +55,7 @@ def http_get_parameter(request: Request,
 
 
 def http_get_parameters(request: Request,
-                        sources: tuple = None) -> Any:
+                        sources: tuple = None) -> dict[str, Any]:
     """
     Obtain the *request*'s input parameters.
 
@@ -175,20 +177,23 @@ def http_get_file(request: Request,
     return result
 
 
-def http_make_response(reply: dict[str, Any],
-                       errors: list[str] | None) -> Response:
+def http_make_response(reply: dict[str, Any] = None,
+                       status: HttpStatus | None = None,
+                       errors: list[str] = None) -> Response:
     """
     Build a *Response* object based on the given *errors* list and the set of key/value pairs in *reply*.
 
-    :param reply: the key/value pairs to add to the response as JSON string
-    :param errors: the reference errors
+    :param reply: the optional key/value pairs to add to the response as JSON string
+    :param status: the optional *HTTP* status code to assign to the response
+    :param errors: the optional reference errors
     :return: the appropriate *Response* object
     """
     # declare the return variable
     result: Response
 
     if errors:
-        reply_err: dict = {"errors": validate_format_errors(errors)}
+        # errors may come from a foreign source
+        reply_err: dict = {"errors": validate_format_errors([str_sanitize(i) for i in errors])}
         if isinstance(reply, dict):
             reply.update(reply_err)
         else:
@@ -199,8 +204,8 @@ def http_make_response(reply: dict[str, Any],
                                       ensure_ascii=False)
         result = make_response(json_string)
         result.headers["Content-Type"] = Mimetype.JSON
-        result.status_code = 400 if errors else 200
+        result.status_code = status if status else (HttpStatus.BAD_REQUEST if errors else HttpStatus.OK)
     else:
-        result = Response(status=204)
+        result = Response(status=status if status else HttpStatus.NO_CONTENT)
 
     return result

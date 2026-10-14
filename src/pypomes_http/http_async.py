@@ -3,7 +3,9 @@ import json
 import threading
 from collections.abc import Callable
 from datetime import datetime
+from io import BytesIO, StringIO
 from logging import Logger
+from pathlib import Path
 from pypomes_core import TZ_LOCAL
 from requests import Response
 from typing import Any
@@ -27,7 +29,7 @@ class HttpAsync(threading.Thread):
                  report_content: bool = False,
                  headers: dict[str, Any] = None,
                  params: dict[str, Any] = None,
-                 data: dict[str, Any] = None,
+                 data: BytesIO | StringIO | Path | str | bytes = None,
                  json: dict[str, Any] = None,
                  timeout: float = None,
                  logger: Logger = None) -> None:
@@ -67,7 +69,7 @@ class HttpAsync(threading.Thread):
         self.report_content: bool = report_content
         self.headers: dict[str, Any] = headers
         self.params: dict[str, Any] = params
-        self.data: dict[str, Any] = data
+        self.data: BytesIO | StringIO | Path | str | bytes = data
         self.json: dict[str, Any] = json
         self.timeout: float = timeout
         self.logger: Logger = logger

@@ -2,9 +2,10 @@ import requests
 import sys
 from enum import IntEnum, StrEnum
 from logging import Logger
-from io import BytesIO
+from io import BytesIO, StringIO
 from json import JSONDecodeError, dumps, loads
-from pypomes_core import APP_PREFIX, env_get_int, exc_format
+from pathlib import Path
+from pypomes_core import APP_PREFIX, env_get_int, exc_format, file_get_data
 from requests import Response
 from typing import Any, BinaryIO
 
@@ -42,7 +43,6 @@ class HttpTimeout(IntEnum):
 def http_delete(url: str,
                 headers: dict[str, str] = None,
                 params: dict[str, Any] = None,
-                data: dict[str, Any] = None,
                 json: dict[str, Any] = None,
                 timeout: float | None = HttpTimeout.DELETE,
                 errors: list[str] = None,
@@ -53,7 +53,6 @@ def http_delete(url: str,
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_DELETE_TIMEOUT - use None to omit)
     :param errors: incidental error messages (might be a non-empty list)
@@ -64,7 +63,6 @@ def http_delete(url: str,
                      url=url,
                      headers=headers,
                      params=params,
-                     data=data,
                      json=json,
                      timeout=timeout,
                      errors=errors,
@@ -74,7 +72,6 @@ def http_delete(url: str,
 def http_get(url: str,
              headers: dict[str, str] = None,
              params: dict[str, Any] = None,
-             data: dict[str, Any] = None,
              json: dict[str, Any] = None,
              stream: bool = None,
              timeout: float | None = HttpTimeout.GET,
@@ -89,7 +86,6 @@ def http_get(url: str,
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param stream: if *True*, return content in chunks (defaults to download it immediately)
     :param timeout: request timeout, in seconds (defaults to HTTP_GET_TIMEOUT - use None to omit)
@@ -101,7 +97,6 @@ def http_get(url: str,
                      url=url,
                      headers=headers,
                      params=params,
-                     data=data,
                      json=json,
                      stream=stream,
                      timeout=timeout,
@@ -112,7 +107,6 @@ def http_get(url: str,
 def http_head(url: str,
               headers: dict[str, str] = None,
               params: dict[str, Any] = None,
-              data: dict[str, Any] = None,
               json: dict[str, Any] = None,
               timeout: float | None = HttpTimeout.HEAD,
               errors: list[str] = None,
@@ -123,7 +117,6 @@ def http_head(url: str,
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
-    :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
     :param timeout: request timeout, in seconds (defaults to HTTP_HEAD_TIMEOUT - use None to omit)
     :param errors: incidental error messages (might be a non-empty list)
@@ -134,7 +127,6 @@ def http_head(url: str,
                      url=url,
                      headers=headers,
                      params=params,
-                     data=data,
                      json=json,
                      timeout=timeout,
                      errors=errors,
@@ -144,19 +136,43 @@ def http_head(url: str,
 def http_patch(url: str,
                headers: dict[str, str] = None,
                params: dict[str, Any] = None,
-               data: dict[str, Any] = None,
+               data: BytesIO | StringIO | Path | str | bytes = None,
                json: dict[str, Any] = None,
+               files: (dict[str, bytes | BinaryIO] |
+                       dict[str, tuple[str, bytes | BinaryIO]] |
+                       dict[str, tuple[str, bytes | BinaryIO, str]] |
+                       dict[str, tuple[str, bytes | BinaryIO, str, dict[str, Any]]]) = None,
                timeout: float | None = HttpTimeout.PATCH,
                errors: list[str] = None,
                logger: Logger = None) -> Response:
     """
     Issue a *PATCH* request to the given *url*, and return the response received.
 
+    The optional *data* parameter holds the data to be send, and is treated according to its type:
+        - type *BytesIO*: *file_data* is a stream of bytes
+        - type *StringIO*: *file_data* is a stream of characters
+        - type *Path*: *file_data* is a path to a file holding the data
+        - type *str*: *file_data* holds the data (used as utf8-encoded)
+        - type *bytes*: *file_data* holds the data (used as is)
+
+    To send multipart-encoded files, the optional *files* parameter is used, formatted as
+    a *dict* holding pairs of *name* and:
+      - a *file-content*, or
+      - a *tuple* holding *file-name, file-content*, or
+      - a *tuple* holding *file-name, file-content, content-type*, or
+      - a *tuple* holding *file-name, file-content, content-type, custom-headers*
+    These parameter elements are:
+      - *file-name*: the name of the file
+      _ *file-content*: the file contents, or a pointer obtained from *Path.open()* or *BytesIO*
+      - *content-type*: the mimetype of the file
+      - *custom-headers*: a *dict* containing additional headers for the file
+
     :param url: the destination URL
     :param headers: optional headers
     :param params: optional parameters to send in the query string of the request
     :param data: optionaL data to send in the body of the request
     :param json: optional JSON to send in the body of the request
+    :param files: optionally, one or more files to send
     :param timeout: request timeout, in seconds (defaults to HTTP_PATCH_TIMEOUT - use None to omit)
     :param errors: incidental error messages (might be a non-empty list)
     :param logger: optional logger
@@ -168,6 +184,7 @@ def http_patch(url: str,
                      params=params,
                      data=data,
                      json=json,
+                     files=files,
                      timeout=timeout,
                      errors=errors,
                      logger=logger)
@@ -176,7 +193,7 @@ def http_patch(url: str,
 def http_post(url: str,
               headers: dict[str, str] = None,
               params: dict[str, Any] = None,
-              data: dict[str, Any] = None,
+              data: BytesIO | StringIO | Path | str | bytes = None,
               json: dict[str, Any] = None,
               files: (dict[str, bytes | BinaryIO] |
                       dict[str, tuple[str, bytes | BinaryIO]] |
@@ -187,6 +204,13 @@ def http_post(url: str,
               logger: Logger = None) -> Response:
     """
     Issue a *POST* request to the given *url*, and return the response received.
+
+    The optional *data* parameter holds the data to be send, and is treated according to its type:
+        - type *BytesIO*: *file_data* is a stream of bytes
+        - type *StringIO*: *file_data* is a stream of characters
+        - type *Path*: *file_data* is a path to a file holding the data
+        - type *str*: *file_data* holds the data (used as utf8-encoded)
+        - type *bytes*: *file_data* holds the data (used as is)
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as
     a *dict* holding pairs of *name* and:
@@ -226,7 +250,7 @@ def http_post(url: str,
 def http_put(url: str,
              headers: dict[str, str] = None,
              params: dict[str, Any] = None,
-             data: dict[str, Any] = None,
+             data: BytesIO | StringIO | Path | str | bytes = None,
              json: dict[str, Any] = None,
              files: (dict[str, bytes | BinaryIO] |
                      dict[str, tuple[str, bytes | BinaryIO]] |
@@ -237,6 +261,13 @@ def http_put(url: str,
              logger: Logger = None) -> Response:
     """
     Issue a *PUT* request to the given *url*, and return the response received.
+
+    The optional *data* parameter holds the data to be send, and is treated according to its type:
+        - type *BytesIO*: *file_data* is a stream of bytes
+        - type *StringIO*: *file_data* is a stream of characters
+        - type *Path*: *file_data* is a path to a file holding the data
+        - type *str*: *file_data* holds the data (used as utf8-encoded)
+        - type *bytes*: *file_data* holds the data (used as is)
 
     :param url: the destination URL
     :param headers: optional headers
@@ -265,7 +296,7 @@ def http_rest(method: HttpMethod,
               url: str,
               headers: dict[str, str] = None,
               params: dict[str, Any] = None,
-              data: dict[str, Any] = None,
+              data: BytesIO | StringIO | Path | str | bytes = None,
               json: dict[str, Any] = None,
               files: (dict[str, bytes | BinaryIO] |
                       dict[str, tuple[str, bytes | BinaryIO]] |
@@ -277,6 +308,13 @@ def http_rest(method: HttpMethod,
               logger: Logger = None) -> Response:
     """
     Issue a *REST* request to the given *url*, and return the response received.
+
+    The optional *data* parameter holds the data to be send, and is treated according to its type:
+        - type *BytesIO*: *file_data* is a stream of bytes
+        - type *StringIO*: *file_data* is a stream of characters
+        - type *Path*: *file_data* is a path to a file holding the data
+        - type *str*: *file_data* holds the data (used as utf8-encoded)
+        - type *bytes*: *file_data* holds the data (used as is)
 
     To send multipart-encoded files, the optional *files* parameter is used, formatted as
     a *dict* holding pairs of *name* and:
@@ -312,7 +350,7 @@ def http_rest(method: HttpMethod,
 
     # adjust the 'files' parameter, converting 'bytes' to a file pointer
     x_files: Any = None
-    if method == HttpMethod.POST and isinstance(files, dict):
+    if files:
         # SANITY-CHECK: use a copy of 'files'
         x_files: dict[str, Any] = files.copy()
         for key, value in files.items():
@@ -326,6 +364,8 @@ def http_rest(method: HttpMethod,
                 x_files[key][1] = BytesIO(value[1])
                 x_files[key][1].seek(0)
                 x_files[key] = tuple(x_files[key])
+    elif data:
+        data = file_get_data(data)
 
     # send the request
     err_msg: str | None = None

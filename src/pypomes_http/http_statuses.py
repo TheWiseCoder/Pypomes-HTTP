@@ -187,7 +187,7 @@ _HTTP_STATUSES: Final[dict] = {
                "It has been deprecated due to security concerns regarding in-band configuration of a proxy."),
         "pt": ("Indica que uma resposta solicitada deve ser acessada por um proxy. "
                "Foi descontinuado devido a questões de segurança em relação à configuração em banda de um proxy."),
-    },
+    },  # noqa
     HttpStatus.TEMPORARY_REDIRECT: {  # 307
         "en": ("The server sends this response to direct the client to get the "
                "requested resource at another URI, with the same method that was used in the prior request."),
